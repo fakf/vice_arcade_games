@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estúdio de Jogos 3D — Arcade</title>
+    <title>Estúdio de Jogos do Vicente — Arcade 3D</title>
     <meta name="description" content="Catálogo oficial de jogos 3D criados para jogar no computador e no telemóvel.">
 
     <!-- Fontes modernas estilo consola / arcade -->
@@ -66,7 +66,7 @@
                 <div>
                     <div class="flex flex-wrap items-center gap-2">
                         <h1 class="arcade-font text-xl sm:text-2xl font-bold tracking-wide text-white uppercase">
-                            Estúdio de Jogos 3D
+                            Estúdio de Jogos do Vicente
                         </h1>
                         <span id="creator-badge" class="hidden text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"></span>
                     </div>
@@ -76,14 +76,21 @@
                 </div>
             </div>
 
-            <!-- Badges de compatibilidade -->
-            <div class="flex items-center gap-2 text-xs font-semibold">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
+            <!-- Badges de compatibilidade e botão de sugestões -->
+            <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
                     <span aria-hidden="true">💻</span> Computador
                 </span>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
                     <span aria-hidden="true">📱</span> Telemóvel
                 </span>
+                <a id="header-suggest-btn"
+                   href="#"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500 hover:from-fuchsia-400 hover:to-cyan-400 text-slate-950 font-extrabold shadow-lg shadow-fuchsia-500/20 transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400">
+                    <span aria-hidden="true">💡</span> Sugerir Jogo
+                </a>
             </div>
         </div>
     </header>
@@ -137,7 +144,7 @@
     <!-- Rodapé -->
     <footer class="border-t border-white/10 mt-12 py-6 text-center text-xs sm:text-sm text-slate-400">
         <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p id="footer-copy">Estúdio de Jogos 3D • Feito com criatividade e Three.js</p>
+            <p id="footer-copy">Estúdio de Jogos do Vicente • Feito com criatividade e Three.js</p>
             <p class="text-slate-500">Dica: Roda o telemóvel na horizontal para melhor experiência 3D</p>
         </div>
     </footer>
@@ -147,8 +154,10 @@
         // ✏️ PERSONALIZA AQUI O SITE DO TEU FILHO!
         // =====================================================================
         const CONFIG = {
-            // Exemplo: "do Vicente" ou "do Tomás" (deixa "" se não quiseres mostrar nome)
-            nomeCriador: "Edição Especial",
+            // Badge ao lado do título principal (deixa "" se não quiseres mostrar)
+            nomeCriador: "Arcade 3D",
+            // Link para abrir uma sugestão de novo jogo como GitHub Issue
+            urlSugestao: "https://github.com/fakf/vice_arcade_games/issues/new?title=Sugest%C3%A3o+de+Jogo%3A+&body=Ol%C3%A1+Vicente%21+Tenho+uma+ideia+para+um+novo+jogo+3D%3A%0A%0A%F0%9F%8E%AE+Nome+do+Jogo%3A+%0A%F0%9F%95%B9%EF%B8%8F+Como+se+joga%3A+%0A%E2%9C%A8+Personagens+ou+poderes+especiais%3A+",
             // Ano para o rodapé
             ano: new Date().getFullYear()
         };
@@ -194,9 +203,9 @@
                 gradiente: "from-fuchsia-600 via-purple-700 to-indigo-900",
                 corBotao: "",
                 corBordaHover: "hover:border-fuchsia-400/40",
-                descricao: "Estamos a programar uma nova aventura no estúdio! Volta em breve para experimentar a próxima criação.",
-                controlosPC: "Computador compatível",
-                controlosMobile: "Telemóvel e Tablet compatíveis",
+                descricao: "Tens uma ideia épica para o próximo jogo do Vicente? Envia a tua sugestão para criarmos uma nova aventura juntos!",
+                controlosPC: "Sugestões abertas no GitHub",
+                controlosMobile: "Funciona em PC e Telemóvel",
                 emBreve: true
             }
         ];
@@ -207,14 +216,17 @@
         const gridEl = document.getElementById("games-grid");
         const creatorBadgeEl = document.getElementById("creator-badge");
         const footerCopyEl = document.getElementById("footer-copy");
+        const headerSuggestBtn = document.getElementById("header-suggest-btn");
+
+        if (headerSuggestBtn && CONFIG.urlSugestao) {
+            headerSuggestBtn.href = CONFIG.urlSugestao;
+        }
 
         if (CONFIG.nomeCriador && CONFIG.nomeCriador.trim() !== "") {
             creatorBadgeEl.textContent = CONFIG.nomeCriador;
             creatorBadgeEl.classList.remove("hidden");
-            footerCopyEl.textContent = `© ${CONFIG.ano} Estúdio de Jogos 3D (${CONFIG.nomeCriador}) • Todos os direitos reservados`;
-        } else {
-            footerCopyEl.textContent = `© ${CONFIG.ano} Estúdio de Jogos 3D • Todos os direitos reservados`;
         }
+        footerCopyEl.textContent = `© ${CONFIG.ano} Estúdio de Jogos do Vicente • Todos os direitos reservados`;
 
         function createEl(tag, className, text) {
             const el = document.createElement(tag);
@@ -274,12 +286,13 @@
                 let actionEl;
                 if (jogo.emBreve) {
                     actionEl = createEl(
-                        "button",
-                        "w-full py-3.5 px-5 rounded-2xl font-bold text-sm uppercase tracking-wider bg-slate-800 text-slate-400 border border-white/10 cursor-not-allowed",
-                        "⏳ Em Breve"
+                        "a",
+                        "w-full py-3.5 px-5 rounded-2xl font-extrabold text-sm sm:text-base uppercase tracking-wider text-center shadow-lg transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400 block bg-gradient-to-r from-fuchsia-500 to-cyan-500 hover:from-fuchsia-400 hover:to-cyan-400 text-slate-950 shadow-fuchsia-500/20",
+                        "💡 Sugerir Ideia de Jogo"
                     );
-                    actionEl.type = "button";
-                    actionEl.disabled = true;
+                    actionEl.href = CONFIG.urlSugestao;
+                    actionEl.target = "_blank";
+                    actionEl.rel = "noopener noreferrer";
                 } else {
                     actionEl = createEl(
                         "a",
