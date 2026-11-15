@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estúdio de Jogos 3D — Arcade</title>
+    <meta name="description" content="Catálogo oficial de jogos 3D criados para jogar no computador e no telemóvel.">
+
+    <!-- Fontes modernas estilo consola / arcade -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #070b14;
+            color: #f8fafc;
+        }
+        .arcade-font {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+        .bg-grid-pattern {
+            background-image:
+                linear-gradient(to right, rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+            background-size: 36px 36px;
+        }
+        .game-card {
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .game-card:hover {
+            transform: translateY(-6px);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .game-card {
+                transition: none;
+            }
+            .game-card:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-grid-pattern relative overflow-x-hidden selection:bg-cyan-400 selection:text-slate-950">
+
+    <!-- Luzes decorativas de fundo -->
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div class="absolute -top-32 -left-24 w-96 h-96 rounded-full bg-cyan-500/15 blur-3xl"></div>
+        <div class="absolute top-1/3 -right-24 w-96 h-96 rounded-full bg-fuchsia-500/15 blur-3xl"></div>
+        <div class="absolute -bottom-32 left-1/3 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl"></div>
+    </div>
+
+    <!-- Cabeçalho estilo Loja / Consola -->
+    <header class="border-b border-white/10 bg-slate-950/75 backdrop-blur-xl sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-fuchsia-500 p-0.5 shadow-lg shadow-cyan-500/20">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl">
+                        🎮
+                    </div>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h1 class="arcade-font text-xl sm:text-2xl font-bold tracking-wide text-white uppercase">
+                            Estúdio de Jogos 3D
+                        </h1>
+                        <span id="creator-badge" class="hidden text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"></span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-400">
+                        Arcade Oficial • Jogos 3D feitos para jogar no browser
+                    </p>
+                </div>
+            </div>
+
+            <!-- Badges de compatibilidade -->
+            <div class="flex items-center gap-2 text-xs font-semibold">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
+                    <span aria-hidden="true">💻</span> Computador
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-slate-200">
+                    <span aria-hidden="true">📱</span> Telemóvel
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+        <!-- Banner Hero -->
+        <section class="mb-10 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-indigo-950/70 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div class="max-w-2xl relative z-10">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 mb-4">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Pronto a Jogar • Sem Instalar Nada
+                </span>
+                <h2 class="arcade-font text-3xl sm:text-4xl font-bold text-white leading-tight mb-3">
+                    Escolhe a tua aventura e entra em campo!
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Todos os jogos funcionam diretamente no navegador, tanto com <strong class="text-white">teclado e rato</strong> no computador como com <strong class="text-white">controlos táteis</strong> no telemóvel ou tablet.
+                </p>
+            </div>
+        </section>
+
+        <!-- Barra de Filtros -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <h3 class="arcade-font text-lg sm:text-xl font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span class="w-2 h-6 rounded-full bg-cyan-400 inline-block"></span>
+                Catálogo de Jogos
+            </h3>
+
+            <div id="filter-bar" class="flex flex-wrap gap-2" role="group" aria-label="Filtrar jogos por categoria">
+                <button type="button" data-filter="todos" class="filter-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-cyan-400 text-slate-950 transition">
+                    Todos
+                </button>
+                <button type="button" data-filter="aventura" class="filter-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-900 text-slate-300 border border-white/10 hover:border-white/30 transition">
+                    Aventura
+                </button>
+                <button type="button" data-filter="desporto" class="filter-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-900 text-slate-300 border border-white/10 hover:border-white/30 transition">
+                    Desporto
+                </button>
+            </div>
+        </div>
+
+        <!-- Grelha de Cartões de Jogos -->
+        <section id="games-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite">
+            <!-- Os cartões são gerados automaticamente a partir da lista JOGOS no script abaixo -->
+        </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="border-t border-white/10 mt-12 py-6 text-center text-xs sm:text-sm text-slate-400">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p id="footer-copy">Estúdio de Jogos 3D • Feito com criatividade e Three.js</p>
+            <p class="text-slate-500">Dica: Roda o telemóvel na horizontal para melhor experiência 3D</p>
+        </div>
+    </footer>
+
+    <script>
+        // =====================================================================
+        // ✏️ PERSONALIZA AQUI O SITE DO TEU FILHO!
+        // =====================================================================
+        const CONFIG = {
+            // Exemplo: "do Vicente" ou "do Tomás" (deixa "" se não quiseres mostrar nome)
+            nomeCriador: "Edição Especial",
+            // Ano para o rodapé
+            ano: new Date().getFullYear()
+        };
+
+        // =====================================================================
+        // 🎮 LISTA DE JOGOS (Para adicionar um jogo novo, copia um bloco!)
+        // =====================================================================
+        const JOGOS = [
+            {
+                titulo: "Homem-Cão: O Mistério do Roubo no Banco",
+                categoria: "aventura",
+                categoriaLabel: "Aventura 3D",
+                arquivo: "jogos/homem_c_o_o_mist_rio_do_roubo_no_banco.html",
+                emoji: "🐶",
+                gradiente: "from-amber-500 via-orange-600 to-sky-700",
+                corBotao: "bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-500/25",
+                corBordaHover: "hover:border-amber-400/60",
+                descricao: "Ajuda o Homem-Cão a explorar a cidade, recolher notas perdidas, descobrir pistas secretas e apanhar os ladrões do banco!",
+                controlosPC: "Setas ou WASD para andar • Rato para rodar câmara",
+                controlosMobile: "Joystick tátil no ecrã para mover e investigar",
+                emBreve: false
+            },
+            {
+                titulo: "EA Sports FC 27: Futebol 3D",
+                categoria: "desporto",
+                categoriaLabel: "Desporto 3D",
+                arquivo: "jogos/ea_sports_fc_27_futebol_3d.html",
+                emoji: "⚽",
+                gradiente: "from-emerald-500 via-green-600 to-slate-900",
+                corBotao: "bg-[#39ff14] hover:bg-lime-300 text-slate-950 shadow-lime-500/25",
+                corBordaHover: "hover:border-[#39ff14]/60",
+                descricao: "Entra no estádio iluminado, escolhe a tua equipa e dificuldade (Amador, Semi-Pro ou Pro) e marca golos incríveis!",
+                controlosPC: "WASD / Setas para correr • Espaço / Teclas para passar e rematar",
+                controlosMobile: "Joystick e botões táteis de Passe e Remate",
+                emBreve: false
+            },
+            {
+                titulo: "Próximo Grande Jogo 3D",
+                categoria: "todos",
+                categoriaLabel: "Em Construção",
+                arquivo: "#",
+                emoji: "🚀",
+                gradiente: "from-fuchsia-600 via-purple-700 to-indigo-900",
+                corBotao: "",
+                corBordaHover: "hover:border-fuchsia-400/40",
+                descricao: "Estamos a programar uma nova aventura no estúdio! Volta em breve para experimentar a próxima criação.",
+                controlosPC: "Computador compatível",
+                controlosMobile: "Telemóvel e Tablet compatíveis",
+                emBreve: true
+            }
+        ];
+
+        // =====================================================================
+        // Renderização segura dos cartões e filtros
+        // =====================================================================
+        const gridEl = document.getElementById("games-grid");
+        const creatorBadgeEl = document.getElementById("creator-badge");
+        const footerCopyEl = document.getElementById("footer-copy");
+
+        if (CONFIG.nomeCriador && CONFIG.nomeCriador.trim() !== "") {
+            creatorBadgeEl.textContent = CONFIG.nomeCriador;
+            creatorBadgeEl.classList.remove("hidden");
+            footerCopyEl.textContent = `© ${CONFIG.ano} Estúdio de Jogos 3D (${CONFIG.nomeCriador}) • Todos os direitos reservados`;
+        } else {
+            footerCopyEl.textContent = `© ${CONFIG.ano} Estúdio de Jogos 3D • Todos os direitos reservados`;
+        }
+
+        function createEl(tag, className, text) {
+            const el = document.createElement(tag);
+            if (className) el.className = className;
+            if (text !== undefined) el.textContent = text;
+            return el;
+        }
+
+        function renderGames(filter = "todos") {
+            gridEl.replaceChildren();
+
+            const filtered = JOGOS.filter(jogo => {
+                if (filter === "todos") return true;
+                if (jogo.emBreve) return false;
+                return jogo.categoria === filter;
+            });
+
+            filtered.forEach(jogo => {
+                const card = createEl(
+                    "article",
+                    `game-card rounded-3xl border ${jogo.emBreve ? "border-dashed border-white/20 opacity-90" : "border-white/10"} bg-slate-900/85 backdrop-blur-md overflow-hidden flex flex-col shadow-xl ${jogo.corBordaHover}`
+                );
+
+                // Capa visual do cartão
+                const cover = createEl("div", `relative h-44 bg-gradient-to-br ${jogo.gradiente} p-5 flex flex-col justify-between overflow-hidden`);
+
+                const topRow = createEl("div", "flex items-center justify-between gap-2 relative z-10");
+                const catBadge = createEl("span", "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-950/70 text-white backdrop-blur-sm border border-white/15", jogo.categoriaLabel);
+                topRow.appendChild(catBadge);
+
+                const deviceBadge = createEl("span", "px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-950/60 text-slate-200 border border-white/10", "PC + Mobile");
+                topRow.appendChild(deviceBadge);
+
+                const emojiWrap = createEl("div", "text-6xl drop-shadow-lg select-none relative z-10", jogo.emoji);
+                const decoCircle = createEl("div", "absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none");
+
+                cover.append(topRow, emojiWrap, decoCircle);
+
+                // Corpo do cartão
+                const body = createEl("div", "p-5 sm:p-6 flex-1 flex flex-col justify-between gap-5");
+
+                const info = createEl("div");
+                const title = createEl("h4", "arcade-font text-xl font-bold text-white leading-snug mb-2", jogo.titulo);
+                const desc = createEl("p", "text-sm text-slate-300 leading-relaxed mb-4", jogo.descricao);
+
+                // Caixa de instruções rápidas
+                const controlsBox = createEl("div", "rounded-2xl bg-slate-950/70 border border-white/10 p-3 space-y-1.5 text-xs text-slate-300");
+                const pcLine = createEl("div", "flex items-start gap-2");
+                pcLine.append(createEl("span", "shrink-0", "⌨️"), createEl("span", "", jogo.controlosPC));
+                const mobLine = createEl("div", "flex items-start gap-2");
+                mobLine.append(createEl("span", "shrink-0", "📱"), createEl("span", "", jogo.controlosMobile));
+                controlsBox.append(pcLine, mobLine);
+
+                info.append(title, desc, controlsBox);
+
+                // Botão de ação
+                let actionEl;
+                if (jogo.emBreve) {
+                    actionEl = createEl(
+                        "button",
+                        "w-full py-3.5 px-5 rounded-2xl font-bold text-sm uppercase tracking-wider bg-slate-800 text-slate-400 border border-white/10 cursor-not-allowed",
+                        "⏳ Em Breve"
+                    );
+                    actionEl.type = "button";
+                    actionEl.disabled = true;
+                } else {
+                    actionEl = createEl(
+                        "a",
+                        `w-full py-3.5 px-5 rounded-2xl font-extrabold text-sm sm:text-base uppercase tracking-wider text-center shadow-lg transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 block ${jogo.corBotao}`,
+                        "▶ Jogar Agora"
+                    );
+                    actionEl.href = jogo.arquivo;
+                }
+
+                body.append(info, actionEl);
+                card.append(cover, body);
+                gridEl.appendChild(card);
+            });
+        }
+
+        // Eventos dos filtros
+        document.querySelectorAll(".filter-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const selected = btn.dataset.filter;
+                document.querySelectorAll(".filter-btn").forEach(b => {
+                    const isActive = b.dataset.filter === selected;
+                    b.className = isActive
+                        ? "filter-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-cyan-400 text-slate-950 transition"
+                        : "filter-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-900 text-slate-300 border border-white/10 hover:border-white/30 transition";
+                });
+                renderGames(selected);
+            });
+        });
+
+        // Inicializar
+        renderGames("todos");
+    </script>
+</body>
+</html>
