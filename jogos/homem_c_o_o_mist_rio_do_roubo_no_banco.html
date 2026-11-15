@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Homem-Cão: O Mistério do Roubo no Banco (Edição Realista)</title>
+    <title>Homem-Cão: O Mistério do Roubo no Banco (Estilo Dav Pilkey)</title>
     <!-- Fontes modernas e legíveis -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
@@ -240,12 +240,12 @@
             </h2>
 
             <div class="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4 mb-6 text-left space-y-2.5 text-slate-200 text-sm sm:text-base">
-                <p>🏦 <strong class="text-white">O Crime:</strong> Ao entardecer, o alarme do Banco Central disparou! O cofre foi arrombado e o dinheiro desapareceu.</p>
+                <p>🏦 <strong class="text-white">O Crime:</strong> O alarme do Banco Central disparou! O cofre foi arrombado e o dinheiro desapareceu.</p>
                 <p>🔦 <strong class="text-white">A Tua Missão:</strong></p>
                 <ul class="list-disc list-inside space-y-1 pl-1 text-slate-300 text-xs sm:text-sm">
-                    <li>Explora a cidade realista com a tua <strong class="text-amber-300">lanterna policial</strong>.</li>
-                    <li>Recolhe as notas e sacos de dinheiro caídos pelo caminho.</li>
-                    <li>Analisa as <strong class="text-sky-300">4 Provas Forenses</strong> para abrir o portão do armazém e deter o <strong class="text-orange-400">Gato Vilão</strong>!</li>
+                    <li>Explora a cidade com o <strong class="text-amber-300">Homem-Cão</strong> e usa a tua lanterna (Tecla F).</li>
+                    <li>Recolhe as moedas e sacos de dinheiro caídos pelo caminho.</li>
+                    <li>Encontra as <strong class="text-sky-300">4 Provas Forenses</strong> para abrir o portão do armazém e apanhar o <strong class="text-orange-400">Pepe o Gato (Petey)</strong>!</li>
                 </ul>
             </div>
 
@@ -263,7 +263,7 @@
                 Caso Encerrado!
             </h1>
             <p class="text-slate-200 text-base sm:text-lg mb-5">
-                Excelente trabalho de detetive! Recuperaste o cofre roubado e apanhaste o Gato Vilão em flagrante!
+                Excelente trabalho de detetive! O Homem-Cão recuperou o dinheiro roubado e apanhou o Pepe o Gato em flagrante!
             </p>
 
             <div class="grid grid-cols-2 gap-3 mb-6">
@@ -298,60 +298,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (slot1) slot1.textContent = '🛠️';
 });
 
-// --- 1. GERADOR DE TEXTURAS PROCEDURAIS REALISTAS (Canvas 2D -> Three.js) ---
+// --- 1. GERADOR DE TEXTURAS ESTILO CARTOON / DAV PILKEY (Leve & Rápido) ---
 class ProceduralTextures {
     static createAsphalt() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        // Base escura de alcatrão
-        ctx.fillStyle = '#272b33';
-        ctx.fillRect(0, 0, 512, 512);
-
-        // Grão mineral realista
-        for (let i = 0; i < 28000; i++) {
-            const x = Math.random() * 512;
-            const y = Math.random() * 512;
-            const shade = 28 + Math.floor(Math.random() * 34);
-            ctx.fillStyle = `rgb(${shade},${shade + 2},${shade + 5})`;
-            ctx.fillRect(x, y, 2, 2);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#475569';
+        for (let i = 0; i < 400; i++) {
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, 3, 3);
         }
-
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(14, 14);
+        tex.repeat.set(12, 12);
         return tex;
     }
 
     static createSidewalk() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillRect(0, 0, 512, 512);
-
-        // Lajes de calçada portuguesa / cimento
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 4;
         const step = 64;
-        ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 3;
-        for (let x = 0; x <= 512; x += step) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+        for (let x = 0; x <= 256; x += step) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 256); ctx.stroke();
         }
-        for (let y = 0; y <= 512; y += step) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+        for (let y = 0; y <= 256; y += step) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
         }
-
-        // Ruído subtil de pedra
-        for (let i = 0; i < 12000; i++) {
-            const v = 130 + Math.floor(Math.random() * 45);
-            ctx.fillStyle = `rgba(${v},${v},${v + 5},0.35)`;
-            ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-        }
-
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
         tex.repeat.set(16, 16);
@@ -360,54 +341,39 @@ class ProceduralTextures {
 
     static createGrass() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#2d5a27';
-        ctx.fillRect(0, 0, 512, 512);
-
-        // Fios de relva variados
-        for (let i = 0; i < 22000; i++) {
-            const x = Math.random() * 512;
-            const y = Math.random() * 512;
-            const g = 75 + Math.floor(Math.random() * 65);
-            const r = 35 + Math.floor(Math.random() * 30);
-            ctx.fillStyle = `rgb(${r},${g},32)`;
-            ctx.fillRect(x, y, 2, 4);
+        ctx.fillStyle = '#22c55e'; // Verde cartoon vivo
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#16a34a';
+        for (let i = 0; i < 600; i++) {
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, 3, 5);
         }
-
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(18, 18);
+        tex.repeat.set(16, 16);
         return tex;
     }
 
-    static createBrick(baseColor = '#8c3b2b', mortarColor = '#cbd5e1') {
+    static createBrick(baseColor = '#b91c1c', mortarColor = '#e2e8f0') {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
         ctx.fillStyle = mortarColor;
-        ctx.fillRect(0, 0, 512, 512);
-
-        const rows = 16;
-        const cols = 8;
-        const bh = 512 / rows;
-        const bw = 512 / cols;
-
+        ctx.fillRect(0, 0, 256, 256);
+        const rows = 8;
+        const cols = 4;
+        const bh = 256 / rows;
+        const bw = 256 / cols;
         for (let r = 0; r < rows; r++) {
             const offset = (r % 2) * (bw / 2);
             for (let c = -1; c <= cols; c++) {
                 ctx.fillStyle = baseColor;
                 ctx.fillRect(c * bw + offset + 2, r * bh + 2, bw - 4, bh - 4);
-                // Sombra/variação no tijolo
-                ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.18})`;
-                ctx.fillRect(c * bw + offset + 2, r * bh + 2, bw - 4, bh - 4);
             }
         }
-
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
         tex.repeat.set(2, 3);
@@ -419,47 +385,25 @@ class ProceduralTextures {
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#925828';
+        ctx.fillStyle = '#b45309';
         ctx.fillRect(0, 0, 256, 256);
-
-        // Veios da madeira
-        for (let y = 0; y < 256; y += 3) {
-            ctx.fillStyle = `rgba(55, 28, 10, ${0.1 + Math.random() * 0.22})`;
-            ctx.fillRect(0, y, 256, 2);
-        }
-
-        // Tábuas e moldura de caixote
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 14;
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 8;
         ctx.strokeRect(0, 0, 256, 256);
         ctx.beginPath();
         ctx.moveTo(0, 0); ctx.lineTo(256, 256);
         ctx.stroke();
-
         return new THREE.CanvasTexture(canvas);
     }
 
-    static createFur(mainHex = '#b86f32') {
+    static createFur(mainHex = '#d99b5b') {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = 64;
+        canvas.height = 64;
         const ctx = canvas.getContext('2d');
-
         ctx.fillStyle = mainHex;
-        ctx.fillRect(0, 0, 256, 256);
-
-        // Textura fina de pelo
-        for (let i = 0; i < 9000; i++) {
-            const x = Math.random() * 256;
-            const y = Math.random() * 256;
-            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,235,205,0.14)' : 'rgba(60,30,10,0.16)';
-            ctx.fillRect(x, y, 1.5, 4);
-        }
-
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        return tex;
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
     }
 }
 
@@ -672,8 +616,8 @@ const gameState = {
     cameraYaw: 0
 };
 
-// --- 4. VARIÁVEIS GLOBAIS THREE.JS, BLOOM & CANNON.JS ---
-let scene, camera, renderer, composer, bloomPass;
+// --- 4. VARIÁVEIS GLOBAIS THREE.JS & CANNON.JS ---
+let scene, camera, renderer;
 let world, physicsMaterial, groundMaterial;
 let playerBody, playerMesh, playerLimbs = {};
 let flashlightSpot, flashlightTarget, flashlightBulb;
@@ -687,7 +631,7 @@ let clueObjects = [];
 let particles = [];
 let gateMesh, gateBody;
 let villainGroup, bigMoneyBag;
-let sirenRedLight, sirenBlueLight, bankAlarmLight;
+let policeRedBeacon, policeBlueBeacon, bankAlarmBulb;
 let sunLight;
 
 const keys = {
@@ -701,42 +645,37 @@ const keys = {
 function init() {
     const container = document.getElementById('game-container');
 
-    // Gerar texturas procedurais
+    // Gerar texturas estilo cartoon
     textures = {
         asphalt: ProceduralTextures.createAsphalt(),
         sidewalk: ProceduralTextures.createSidewalk(),
         grass: ProceduralTextures.createGrass(),
-        brickRed: ProceduralTextures.createBrick('#7c2d12', '#94a3b8'),
-        brickBrown: ProceduralTextures.createBrick('#57534e', '#cbd5e1'),
+        brickRed: ProceduralTextures.createBrick('#dc2626', '#e2e8f0'),
+        brickBrown: ProceduralTextures.createBrick('#b45309', '#f1f5f9'),
         wood: ProceduralTextures.createWood(),
-        dogFur: ProceduralTextures.createFur('#b86f32'),
-        catFur: ProceduralTextures.createFur('#ea580c')
+        dogFur: ProceduralTextures.createFur('#d99b5b'),
+        catFur: ProceduralTextures.createFur('#f97316')
     };
 
-    // Cena ao Entardecer / Crepúsculo Realista (permite ver luzes, sirenes e lanterna!)
+    // Céu alegre e vibrante estilo banda desenhada / cartoon do Dav Pilkey
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x162238);
-    scene.fog = new THREE.FogExp2(0x162238, 0.011);
+    scene.background = new THREE.Color(0x7dd3fc);
+    scene.fog = new THREE.FogExp2(0x7dd3fc, 0.006);
 
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 220);
     camera.position.set(0, 7, 15);
 
+    // Renderer super fluido a 60 FPS
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.05;
     container.insertBefore(renderer.domElement, container.firstChild);
 
-    // Environment Map PBR para reflexos metálicos e nos vidros
-    setupEnvironmentReflections();
-
-    // Pós-processamento Cinematográfico (UnrealBloomPass)
-    setupPostProcessing();
-
-    // Iluminação Realista
+    // Iluminação limpa e otimizada (sem 10 luzes pesadas)
     setupLights();
 
     // Mundo Físico Cannon.js
@@ -757,7 +696,7 @@ function init() {
         restitution: 0.22
     }));
 
-    // Construir o Cenário Urbano Realista
+    // Construir o Cenário Urbano Estilo Dav Pilkey
     buildRealisticCity();
     createPoliceCar(6.5, -13);
     createDetailedDogMan();
@@ -769,65 +708,26 @@ function init() {
     animate();
 }
 
-function setupEnvironmentReflections() {
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    pmremGenerator.compileEquirectangularShader();
-
-    const envScene = new THREE.Scene();
-    envScene.background = new THREE.Color(0x1e293b);
-
-    const skyDome = new THREE.Mesh(
-        new THREE.SphereGeometry(50, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.BackSide })
-    );
-    envScene.add(skyDome);
-
-    const horizonGlow = new THREE.Mesh(
-        new THREE.BoxGeometry(80, 12, 80),
-        new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.BackSide })
-    );
-    horizonGlow.position.y = 4;
-    envScene.add(horizonGlow);
-
-    const renderTarget = pmremGenerator.fromScene(envScene);
-    scene.environment = renderTarget.texture;
-    pmremGenerator.dispose();
-}
-
-function setupPostProcessing() {
-    composer = new THREE.EffectComposer(renderer);
-    const renderPass = new THREE.RenderPass(scene, camera);
-    composer.addPass(renderPass);
-
-    bloomPass = new THREE.UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth, window.innerHeight),
-        0.55, // Intensidade suave e cinematográfica
-        0.4,  // Raio
-        0.82  // Threshold (apenas luzes brilhantes, sirenes e ouro brilham)
-    );
-    composer.addPass(bloomPass);
-}
-
 function setupLights() {
-    // Luz ambiente crepuscular suave
-    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x1e293b, 0.65);
+    // Luz ambiente suave e colorida de cartoon
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbae6fd, 0.85);
     hemiLight.position.set(0, 50, 0);
     scene.add(hemiLight);
 
-    // Sol baixo de fim de tarde com sombras suaves de alta definição
-    sunLight = new THREE.DirectionalLight(0xffedd5, 0.85);
-    sunLight.position.set(32, 38, 28);
+    // Sol brilhante com sombras nítidas e otimizadas (1024x1024)
+    sunLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+    sunLight.position.set(32, 42, 28);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
     sunLight.shadow.camera.near = 5;
     sunLight.shadow.camera.far = 115;
-    const d = 44;
+    const d = 42;
     sunLight.shadow.camera.left = -d;
     sunLight.shadow.camera.right = d;
     sunLight.shadow.camera.top = d;
     sunLight.shadow.camera.bottom = -d;
-    sunLight.shadow.bias = -0.0005;
+    sunLight.shadow.bias = -0.0008;
     scene.add(sunLight);
     scene.add(sunLight.target);
 }
@@ -976,16 +876,12 @@ function buildRealisticBank(x, z) {
     bankGroup.add(emblem);
 
     // Luz de Alarme Vermelha a Piscar acima da porta do Banco!
-    const alarmBulb = new THREE.Mesh(
+    bankAlarmBulb = new THREE.Mesh(
         new THREE.SphereGeometry(0.35, 12, 12),
         new THREE.MeshBasicMaterial({ color: 0xff2222 })
     );
-    alarmBulb.position.set(0, 5.2, 5.3);
-    bankGroup.add(alarmBulb);
-
-    bankAlarmLight = new THREE.PointLight(0xff1111, 2.5, 16);
-    bankAlarmLight.position.set(x, 5.2, z + 5.8);
-    scene.add(bankAlarmLight);
+    bankAlarmBulb.position.set(0, 5.2, 5.3);
+    bankGroup.add(bankAlarmBulb);
 
     scene.add(bankGroup);
 
@@ -1131,22 +1027,18 @@ function buildMetalRampPlatform(x, z) {
 }
 
 function createStreetLamp(x, z) {
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.85 });
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 6.2, 10), poleMat);
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.5 });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 6.2, 8), poleMat);
     pole.position.set(x, 3.1, z);
     pole.castShadow = true;
     scene.add(pole);
 
     const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.32, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xffedd5 })
+        new THREE.SphereGeometry(0.35, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a })
     );
     bulb.position.set(x, 6.2, z);
     scene.add(bulb);
-
-    const light = new THREE.PointLight(0xffb74d, 1.4, 18);
-    light.position.set(x, 5.9, z);
-    scene.add(light);
 }
 
 // --- 7. CARRO DE PATRULHA DA POLÍCIA COM SIRENES ---
@@ -1178,11 +1070,11 @@ function createPoliceCar(x, z) {
 
     // Tejadilho
     const roof = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 2.2), whitePaint);
-    roof.position.set(0, 1.86, -0.15);
+    roof.position.y = 1.86, -0.15;
     car.add(roof);
 
     // Rodas
-    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.32, 16);
+    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.32, 12);
     wheelGeo.rotateZ(Math.PI / 2);
     const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
     [[-1.15, 1.4], [1.15, 1.4], [-1.15, -1.4], [1.15, -1.4]].forEach(([wx, wz]) => {
@@ -1192,27 +1084,19 @@ function createPoliceCar(x, z) {
     });
 
     // Barra de Sirenes Luminosas (Vermelho + Azul)
-    const redBeacon = new THREE.Mesh(
+    policeRedBeacon = new THREE.Mesh(
         new THREE.BoxGeometry(0.55, 0.22, 0.32),
         new THREE.MeshBasicMaterial({ color: 0xff2a2a })
     );
-    redBeacon.position.set(-0.45, 2.0, -0.15);
-    car.add(redBeacon);
+    policeRedBeacon.position.set(-0.45, 2.0, -0.15);
+    car.add(policeRedBeacon);
 
-    const blueBeacon = new THREE.Mesh(
+    policeBlueBeacon = new THREE.Mesh(
         new THREE.BoxGeometry(0.55, 0.22, 0.32),
         new THREE.MeshBasicMaterial({ color: 0x3b82f6 })
     );
-    blueBeacon.position.set(0.45, 2.0, -0.15);
-    car.add(blueBeacon);
-
-    sirenRedLight = new THREE.PointLight(0xff1e1e, 2.8, 18);
-    sirenRedLight.position.set(x - 0.5, 2.4, z);
-    scene.add(sirenRedLight);
-
-    sirenBlueLight = new THREE.PointLight(0x2563eb, 2.8, 18);
-    sirenBlueLight.position.set(x + 0.5, 2.4, z);
-    scene.add(sirenBlueLight);
+    policeBlueBeacon.position.set(0.45, 2.0, -0.15);
+    car.add(policeBlueBeacon);
 
     scene.add(car);
 
@@ -1224,138 +1108,168 @@ function createPoliceCar(x, z) {
     world.addBody(carBody);
 }
 
-// --- 8. PERSONAGEM HOMEM-CÃO 3D DETALHADO + LANTERNA REAL ---
+// --- 8. PERSONAGEM HOMEM-CÃO 3D (FIEL AO LIVRO DE DAV PILKEY) ---
 function createDetailedDogMan() {
     playerMesh = new THREE.Group();
 
-    const furMat = new THREE.MeshStandardMaterial({ map: textures.dogFur, roughness: 0.75 });
-    const snoutMat = new THREE.MeshStandardMaterial({ color: 0xd99b66, roughness: 0.7 });
-    const uniformMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.65 });
-    const darkNavyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5, metalness: 0.2 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.2, metalness: 0.9 });
-    const leatherMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4, metalness: 0.3 });
+    // Paleta de cores oficial de Dav Pilkey
+    const dogFurMat = new THREE.MeshStandardMaterial({ color: 0xd99b5b, roughness: 0.65 }); // Castanho-biscoito
+    const snoutFurMat = new THREE.MeshStandardMaterial({ color: 0xebb17a, roughness: 0.7 }); // Focinho bege claro
+    const darkEarMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.75 }); // Orelhas castanhas escuras
+    const uniformMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.55 }); // Azul polícia vivo
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.6 }); // Calças azuis
+    const blackMat = new THREE.MeshBasicMaterial({ color: 0x111827 }); // Nariz, olhos, bigodes, pala
+    const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Olhos brancos
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3, metalness: 0.7 }); // Distintivo dourado
+    const leatherMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.7 }); // Cinto e botas
 
-    // Tronco com Farda Policial
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.62, 1.18, 16), uniformMat);
-    torso.position.y = 1.06;
+    // 1. Tronco com Farda Policial Azul Viva
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 1.2, 16), uniformMat);
+    torso.position.y = 1.05;
     torso.castShadow = true;
     playerMesh.add(torso);
 
-    // Cinto Tático de Polícia
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.64, 0.64, 0.16, 16), leatherMat);
-    belt.position.y = 0.62;
+    // Gola preta da farda
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.54, 0.1, 16), blackMat);
+    collar.position.y = 1.62;
+    playerMesh.add(collar);
+
+    // Grande Distintivo Dourado de Polícia no Peito (Escudo com Estrela)
+    const badgeGroup = new THREE.Group();
+    badgeGroup.position.set(0.24, 1.28, 0.54);
+    badgeGroup.rotation.y = 0.22;
+
+    const badgeBase = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.08), goldMat);
+    badgeGroup.add(badgeBase);
+
+    const badgeStar = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshBasicMaterial({ color: 0xca8a04 }));
+    badgeStar.position.z = 0.05;
+    badgeGroup.add(badgeStar);
+    playerMesh.add(badgeGroup);
+
+    // Cinto com Fivela Dourada
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.63, 0.63, 0.16, 16), leatherMat);
+    belt.position.y = 0.6;
     playerMesh.add(belt);
 
-    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.1), goldMat);
-    buckle.position.set(0, 0.62, 0.63);
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.18, 0.12), goldMat);
+    buckle.position.set(0, 0.6, 0.62);
     playerMesh.add(buckle);
 
-    // Distintivo Metálico Brilhante
-    const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.08, 6), goldMat);
-    badge.rotation.x = Math.PI / 2;
-    badge.position.set(0.23, 1.28, 0.55);
-    playerMesh.add(badge);
-
-    // Cabeça Esculpida do Homem-Cão
+    // 2. Cabeça do Homem-Cão (Estilo Dav Pilkey)
     const headGroup = new THREE.Group();
     headGroup.position.set(0, 2.05, 0);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.66, 20, 20), furMat);
-    head.scale.set(1.04, 0.96, 1);
+    // Cabeça arredondada
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.66, 18, 18), dogFurMat);
+    head.scale.set(1.05, 0.98, 1);
     head.castShadow = true;
     headGroup.add(head);
 
-    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), snoutMat);
-    snout.scale.set(1.1, 0.85, 1.25);
-    snout.position.set(0, -0.09, 0.56);
+    // Focinho proeminente característico do Dav Pilkey (retangular arredondado projetado para a frente)
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.48, 0.75), snoutFurMat);
+    snout.position.set(0, -0.08, 0.62);
     snout.castShadow = true;
     headGroup.add(snout);
 
-    const nose = new THREE.Mesh(
-        new THREE.SphereGeometry(0.14, 14, 14),
-        new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.25, metalness: 0.4 })
-    );
-    nose.position.set(0, 0.03, 0.94);
+    // Nariz preto arredondado no topo dianteiro do focinho
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), blackMat);
+    nose.scale.set(1.15, 0.9, 1.1);
+    nose.position.set(0, 0.14, 0.98);
     headGroup.add(nose);
 
-    // Olhos expressivos com reflexo
-    [-0.22, 0.22].forEach(ex => {
-        const eyeWhite = new THREE.Mesh(
-            new THREE.SphereGeometry(0.13, 12, 12),
-            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.15 })
-        );
-        eyeWhite.position.set(ex, 0.16, 0.55);
+    // OS TRÊS PONTINHOS PRETOS DE BIGODE DE CADA LADO (Marca inconfundível de Dav Pilkey!)
+    [-1, 1].forEach(side => {
+        const dotCoords = [
+            { y: 0.02, z: 0.72 },
+            { y: -0.06, z: 0.85 },
+            { y: -0.14, z: 0.72 }
+        ];
+        dotCoords.forEach(c => {
+            const whiskerDot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), blackMat);
+            whiskerDot.position.set(side * 0.34, c.y, c.z);
+            headGroup.add(whiskerDot);
+        });
+    });
+
+    // Traço preto de sorriso simpático na frente
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 6, 14, Math.PI), blackMat);
+    smile.rotation.x = Math.PI;
+    smile.rotation.z = Math.PI;
+    smile.position.set(0, -0.22, 0.96);
+    headGroup.add(smile);
+
+    // Olhos Expressivos estilo Cartoon Dav Pilkey ("dot eyes" com fundo branco)
+    [-0.23, 0.23].forEach(ex => {
+        const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 12), whiteMat);
+        eyeWhite.position.set(ex, 0.22, 0.54);
+        eyeWhite.scale.set(0.9, 1.15, 0.7);
         headGroup.add(eyeWhite);
 
-        const pupil = new THREE.Mesh(new THREE.MeshBasicMaterial({ color: 0x090d16 }), new THREE.SphereGeometry(0.07, 10, 10));
-        pupil.geometry = new THREE.SphereGeometry(0.07, 10, 10);
-        pupil.material = new THREE.MeshBasicMaterial({ color: 0x090d16 });
-        pupil.position.set(ex, 0.16, 0.66);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), blackMat);
+        pupil.position.set(ex, 0.22, 0.65);
         headGroup.add(pupil);
     });
 
-    // Orelhas articuladas
-    const earGeo = new THREE.BoxGeometry(0.22, 0.68, 0.35);
-    playerLimbs.leftEar = new THREE.Mesh(earGeo, furMat);
-    playerLimbs.leftEar.position.set(-0.7, -0.05, 0);
-    playerLimbs.leftEar.rotation.z = 0.24;
-    playerLimbs.leftEar.castShadow = true;
+    // Orelhas Caídas Compridas (Castanho Escuro, articuladas que abanam alegremente)
+    const earGeo = new THREE.BoxGeometry(0.2, 0.78, 0.36);
+    playerLimbs.leftEar = new THREE.Mesh(earGeo, darkEarMat);
+    playerLimbs.leftEar.position.set(-0.7, 0.02, 0);
+    playerLimbs.leftEar.rotation.z = 0.28;
     headGroup.add(playerLimbs.leftEar);
 
-    playerLimbs.rightEar = new THREE.Mesh(earGeo, furMat);
-    playerLimbs.rightEar.position.set(0.7, -0.05, 0);
-    playerLimbs.rightEar.rotation.z = -0.24;
-    playerLimbs.rightEar.castShadow = true;
+    playerLimbs.rightEar = new THREE.Mesh(earGeo, darkEarMat);
+    playerLimbs.rightEar.position.set(0.7, 0.02, 0);
+    playerLimbs.rightEar.rotation.z = -0.28;
     headGroup.add(playerLimbs.rightEar);
 
-    // Quepe / Boné de Polícia Realista
-    const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.56, 0.34, 18), uniformMat);
-    capCrown.position.set(0, 0.61, -0.03);
-    capCrown.castShadow = true;
+    // Boné Oficial de Polícia Azul
+    const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.58, 0.35, 18), uniformMat);
+    capCrown.position.set(0, 0.65, -0.02);
     headGroup.add(capCrown);
 
+    // Pala preta do boné
     const capVisor = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.54, 0.54, 0.07, 18, 1, false, -Math.PI / 2, Math.PI),
-        darkNavyMat
+        new THREE.CylinderGeometry(0.56, 0.56, 0.06, 18, 1, false, -Math.PI / 2, Math.PI),
+        blackMat
     );
-    capVisor.position.set(0, 0.47, 0.27);
-    capVisor.rotation.x = 0.16;
+    capVisor.position.set(0, 0.5, 0.3);
+    capVisor.rotation.x = 0.22;
     headGroup.add(capVisor);
 
-    const capEmblem = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), goldMat);
-    capEmblem.position.set(0, 0.63, 0.52);
-    headGroup.add(capEmblem);
+    // Distintivo Dourado no Boné
+    const capBadge = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), goldMat);
+    capBadge.scale.set(1, 1, 0.4);
+    capBadge.position.set(0, 0.67, 0.53);
+    headGroup.add(capBadge);
 
     playerMesh.add(headGroup);
 
-    // Braço Esquerdo
+    // 3. Braços e Patas
     const leftArmPivot = new THREE.Group();
-    leftArmPivot.position.set(-0.7, 1.45, 0);
-    const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.14, 0.72, 12), uniformMat);
+    leftArmPivot.position.set(-0.72, 1.45, 0);
+    const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.15, 0.72, 12), uniformMat);
     lArm.position.y = -0.3;
-    lArm.castShadow = true;
     leftArmPivot.add(lArm);
-    const lPaw = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 12), furMat);
+    const lPaw = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), dogFurMat);
     lPaw.position.y = -0.68;
     leftArmPivot.add(lPaw);
     playerMesh.add(leftArmPivot);
     playerLimbs.leftArm = leftArmPivot;
 
-    // Braço Direito + LANTERNA POLICIAL REAL!
     const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.7, 1.45, 0);
-    const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.14, 0.72, 12), uniformMat);
+    rightArmPivot.position.set(0.72, 1.45, 0);
+    const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.15, 0.72, 12), uniformMat);
     rArm.position.y = -0.3;
-    rArm.castShadow = true;
     rightArmPivot.add(rArm);
-    const rPaw = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 12), furMat);
+    const rPaw = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), dogFurMat);
     rPaw.position.y = -0.68;
     rightArmPivot.add(rPaw);
 
-    // Corpo da lanterna na pata direita
+    // Lanterna leve na pata direita
     const torchBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.1, 0.08, 0.42, 12),
-        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.85 })
+        new THREE.CylinderGeometry(0.09, 0.08, 0.42, 10),
+        new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 })
     );
     torchBody.rotation.x = Math.PI / 2;
     torchBody.position.set(0, -0.68, 0.22);
@@ -1368,8 +1282,7 @@ function createDetailedDogMan() {
     flashlightBulb.position.set(0, -0.68, 0.44);
     rightArmPivot.add(flashlightBulb);
 
-    // Feixe de SpotLight real da lanterna!
-    flashlightSpot = new THREE.SpotLight(0xfffbeb, 3.2, 26, Math.PI / 5.5, 0.45, 1.2);
+    flashlightSpot = new THREE.SpotLight(0xfffbeb, 2.5, 24, Math.PI / 5.5, 0.5, 1.2);
     flashlightSpot.position.set(0, -0.65, 0.45);
     flashlightTarget = new THREE.Object3D();
     flashlightTarget.position.set(0, -1.6, 6.5);
@@ -1380,16 +1293,15 @@ function createDetailedDogMan() {
     playerMesh.add(rightArmPivot);
     playerLimbs.rightArm = rightArmPivot;
 
-    // Pernas e Botas
+    // 4. Pernas e Botas
     const createLeg = (side) => {
         const pivot = new THREE.Group();
-        pivot.position.set(side * 0.27, 0.55, 0);
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.17, 0.55, 12), darkNavyMat);
-        leg.position.y = -0.25;
-        leg.castShadow = true;
+        pivot.position.set(side * 0.28, 0.55, 0);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.18, 0.56, 12), pantsMat);
+        leg.position.y = -0.26;
         pivot.add(leg);
 
-        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.44), leatherMat);
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.45), leatherMat);
         boot.position.set(0, -0.48, 0.08);
         pivot.add(boot);
         playerMesh.add(pivot);
@@ -1398,12 +1310,12 @@ function createDetailedDogMan() {
     playerLimbs.leftLeg = createLeg(-1);
     playerLimbs.rightLeg = createLeg(1);
 
-    // Cauda
+    // 5. Cauda alegre e animada
     const tailPivot = new THREE.Group();
     tailPivot.position.set(0, 0.75, -0.58);
-    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.13, 0.55, 10), furMat);
-    tail.position.set(0, 0.2, -0.15);
-    tail.rotation.x = -0.6;
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, 0.55, 8), dogFurMat);
+    tail.position.set(0, 0.18, -0.15);
+    tail.rotation.x = -0.65;
     tailPivot.add(tail);
     playerMesh.add(tailPivot);
     playerLimbs.tail = tailPivot;
@@ -1480,38 +1392,109 @@ function createVillainWarehouse() {
     gateBody.position.set(hx, 2.2, hz + 4.8);
     world.addBody(gateBody);
 
-    // Gato Vilão Realista
+    // Gato Vilão: Pepe o Gato (Petey the Cat - Fiel ao livro Dav Pilkey)
     villainGroup = new THREE.Group();
     villainGroup.position.set(hx - 1.8, 0, hz - 1.2);
 
-    const catFurMat = new THREE.MeshStandardMaterial({ map: textures.catFur, roughness: 0.75 });
-    const blackMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+    const catOrangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.65 }); // Laranja vivo do Petey
+    const catCreamMat = new THREE.MeshStandardMaterial({ color: 0xffedd5, roughness: 0.7 }); // Bochechas creme
+    const catPinkMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 }); // Interior orelhas
+    const blackMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
     const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-    const catBody = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.58, 1.3, 14), catFurMat);
-    catBody.position.y = 0.85;
-    catBody.castShadow = true;
-    villainGroup.add(catBody);
+    // Tronco do Petey: Camisola clássica de prisioneiro às riscas pretas e brancas (como nos livros!)
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.y = 0.85;
 
-    const catHead = new THREE.Mesh(new THREE.SphereGeometry(0.62, 18, 18), catFurMat);
+    const stripeCount = 6;
+    const stripeHeight = 1.3 / stripeCount;
+    for (let s = 0; s < stripeCount; s++) {
+        const isBlack = s % 2 === 0;
+        const ring = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.46, 0.54, stripeHeight, 14),
+            isBlack ? blackMat : whiteMat
+        );
+        ring.position.y = (s - stripeCount / 2 + 0.5) * stripeHeight;
+        torsoGroup.add(ring);
+    }
+    villainGroup.add(torsoGroup);
+
+    // Braços com patas laranjas
+    [-0.6, 0.6].forEach(side => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.65, 10), catOrangeMat);
+        arm.position.set(side, 0.8, 0.1);
+        arm.rotation.z = side * -0.3;
+        villainGroup.add(arm);
+
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), catOrangeMat);
+        paw.position.set(side * 1.1, 0.45, 0.15);
+        villainGroup.add(paw);
+    });
+
+    // Cabeça Redonda Laranja do Petey
+    const catHead = new THREE.Mesh(new THREE.SphereGeometry(0.62, 18, 18), catOrangeMat);
     catHead.position.y = 1.95;
     catHead.castShadow = true;
     villainGroup.add(catHead);
 
-    [-0.38, 0.38].forEach(ex => {
-        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 4), catFurMat);
+    // Orelhas pontiagudas de gato (com interior rosa suave)
+    [-0.34, 0.34].forEach(ex => {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.55, 4), catOrangeMat);
         ear.position.set(ex, 2.55, 0);
-        ear.rotation.z = ex > 0 ? -0.22 : 0.22;
+        ear.rotation.z = ex > 0 ? -0.25 : 0.25;
         villainGroup.add(ear);
 
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), whiteMat);
-        eye.position.set(ex * 0.55, 2.0, 0.52);
+        const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.35, 4), catPinkMat);
+        innerEar.position.set(ex * 0.95, 2.52, 0.05);
+        innerEar.rotation.z = ex > 0 ? -0.25 : 0.25;
+        villainGroup.add(innerEar);
+    });
+
+    // Focinho e Bochechas Creme/Branco
+    const catSnout = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), catCreamMat);
+    catSnout.scale.set(1.15, 0.7, 0.8);
+    catSnout.position.set(0, 1.82, 0.5);
+    villainGroup.add(catSnout);
+
+    // Nariz triangular preto
+    const catNose = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.08, 3), blackMat);
+    catNose.rotation.x = Math.PI / 2;
+    catNose.position.set(0, 1.9, 0.72);
+    villainGroup.add(catNose);
+
+    // BIGODES PRETOS DE GATO (3 de cada lado!)
+    [-1, 1].forEach(side => {
+        [-0.05, 0, 0.05].forEach((wY, wIdx) => {
+            const whisker = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.02, 0.02), blackMat);
+            whisker.position.set(side * 0.42, 1.82 + wY, 0.6);
+            whisker.rotation.z = side * (wIdx - 1) * 0.25;
+            villainGroup.add(whisker);
+        });
+    });
+
+    // Olhos Expressivos de Cartoon Malandro
+    [-0.22, 0.22].forEach(ex => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), whiteMat);
+        eye.scale.set(0.9, 1.2, 0.6);
+        eye.position.set(ex, 2.05, 0.54);
         villainGroup.add(eye);
 
-        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), blackMat);
-        pupil.position.set(ex * 0.55, 2.0, 0.62);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), blackMat);
+        pupil.position.set(ex, 2.05, 0.65);
         villainGroup.add(pupil);
+
+        // Sobrancelha traquina
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.04), blackMat);
+        brow.position.set(ex, 2.22, 0.58);
+        brow.rotation.z = ex > 0 ? 0.35 : -0.35;
+        villainGroup.add(brow);
     });
+
+    // Cauda Comprida de Gato curvada em S
+    const catTail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.9, 8), catOrangeMat);
+    catTail.position.set(0, 0.8, -0.5);
+    catTail.rotation.x = 0.8;
+    villainGroup.add(catTail);
 
     scene.add(villainGroup);
 
@@ -1519,21 +1502,21 @@ function createVillainWarehouse() {
     bigMoneyBag = new THREE.Group();
     bigMoneyBag.position.set(hx + 1.6, 0, hz - 1.0);
 
-    const bagMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.7 });
-    const goldTieMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.25, metalness: 0.85 });
+    const bagMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+    const goldTieMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3, metalness: 0.7 });
 
-    const sack = new THREE.Mesh(new THREE.SphereGeometry(1.15, 18, 18), bagMat);
-    sack.scale.set(1, 1.2, 1);
+    const sack = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 16), bagMat);
+    sack.scale.set(1, 1.25, 1);
     sack.position.y = 1.2;
     sack.castShadow = true;
     bigMoneyBag.add(sack);
 
-    const top = new THREE.Mesh(new THREE.ConeGeometry(0.68, 0.8, 14), bagMat);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.8, 12), bagMat);
     top.position.y = 2.55;
     top.rotation.x = Math.PI;
     bigMoneyBag.add(top);
 
-    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.1, 10, 18), goldTieMat);
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.1, 8, 16), goldTieMat);
     tie.rotation.x = Math.PI / 2;
     tie.position.y = 2.3;
     bigMoneyBag.add(tie);
@@ -1548,14 +1531,14 @@ function spawnCollectiblesAndClues() {
     clueObjects.forEach(c => scene.remove(c.mesh));
     clueObjects = [];
 
-    const coinGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 20);
+    const coinGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 14);
     coinGeo.rotateX(Math.PI / 2);
     const coinMat = new THREE.MeshStandardMaterial({
         color: 0xfacc15,
         emissive: 0xca8a04,
         emissiveIntensity: 0.35,
-        roughness: 0.2,
-        metalness: 0.9
+        roughness: 0.3,
+        metalness: 0.7
     });
 
     const coinSpots = [
@@ -1570,7 +1553,6 @@ function spawnCollectiblesAndClues() {
     coinSpots.forEach(pt => {
         const mesh = new THREE.Mesh(coinGeo, coinMat);
         mesh.position.set(pt.x, pt.y, pt.z);
-        mesh.castShadow = true;
         scene.add(mesh);
         collectibles.push({ mesh, value: 50, isBag: false, collected: false, baseY: pt.y });
     });
@@ -1591,7 +1573,6 @@ function spawnCollectiblesAndClues() {
         const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.62, 14, 14), bagMat);
         mesh.scale.set(1, 1.25, 1);
         mesh.position.set(pt.x, pt.y, pt.z);
-        mesh.castShadow = true;
         scene.add(mesh);
         collectibles.push({ mesh, value: 250, isBag: true, collected: false, baseY: pt.y });
     });
@@ -1896,7 +1877,6 @@ function setupEvents() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-        composer.setSize(window.innerWidth, window.innerHeight);
     });
 
     window.addEventListener('keydown', (e) => {
@@ -2024,14 +2004,15 @@ function animate() {
         o.mesh.quaternion.copy(o.body.quaternion);
     });
 
-    // Sirenes da polícia e alarme do banco a piscar alternadamente
-    if (sirenRedLight && sirenBlueLight) {
-        const flash = Math.sin(elapsed * 12);
-        sirenRedLight.intensity = flash > 0 ? 3.5 : 0.2;
-        sirenBlueLight.intensity = flash <= 0 ? 3.5 : 0.2;
+    // Sirenes da polícia e alarme do banco a piscar alternadamente (sem luzes dinâmicas pesadas)
+    const flash = Math.sin(elapsed * 12);
+    if (policeRedBeacon && policeBlueBeacon) {
+        policeRedBeacon.material.color.setHex(flash > 0 ? 0xff2222 : 0x330000);
+        policeBlueBeacon.material.color.setHex(flash <= 0 ? 0x2563eb : 0x001144);
     }
-    if (bankAlarmLight) {
-        bankAlarmLight.intensity = 1.5 + Math.sin(elapsed * 8) * 1.4;
+    if (bankAlarmBulb) {
+        const aFlash = Math.sin(elapsed * 8);
+        bankAlarmBulb.material.color.setHex(aFlash > 0 ? 0xff1111 : 0x330000);
     }
 
     // Portão metálico a abrir
@@ -2041,8 +2022,8 @@ function animate() {
 
     // Animações subtis do Vilão e Itens
     if (villainGroup) {
-        villainGroup.position.y = Math.abs(Math.sin(elapsed * 3.8)) * 0.2;
-        villainGroup.rotation.y = Math.sin(elapsed * 2) * 0.35;
+        villainGroup.position.y = Math.abs(Math.sin(elapsed * 3.8)) * 0.15;
+        villainGroup.rotation.y = Math.sin(elapsed * 2) * 0.25;
     }
     if (bigMoneyBag && !gameState.victory) {
         bigMoneyBag.rotation.y = elapsed * 1.4;
@@ -2065,7 +2046,7 @@ function animate() {
     updateParticles(dt);
     updateCamera(dt);
 
-    composer.render();
+    renderer.render(scene, camera);
 }
 
 function updatePlayerMovement(dt, elapsed) {
@@ -2115,10 +2096,10 @@ function updatePlayerMovement(dt, elapsed) {
         playerLimbs.rightArm.rotation.x = -0.25; // Segura a lanterna apontada para a frente
     }
 
-    // Orelhas e cauda com movimento natural
-    playerLimbs.tail.rotation.z = Math.sin(elapsed * 9) * 0.4;
-    playerLimbs.leftEar.rotation.z = 0.24 + Math.sin(elapsed * 5) * 0.05;
-    playerLimbs.rightEar.rotation.z = -0.24 - Math.sin(elapsed * 5) * 0.05;
+    // Orelhas e cauda com movimento dinâmico e alegre de cartoon
+    if (playerLimbs.tail) playerLimbs.tail.rotation.z = Math.sin(elapsed * 9) * 0.45;
+    if (playerLimbs.leftEar) playerLimbs.leftEar.rotation.z = 0.28 + Math.sin(elapsed * 6) * 0.08;
+    if (playerLimbs.rightEar) playerLimbs.rightEar.rotation.z = -0.28 - Math.sin(elapsed * 6) * 0.08;
 
     playerBody.velocity.x = moveX;
     playerBody.velocity.z = moveZ;
