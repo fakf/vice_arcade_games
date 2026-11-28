@@ -41,14 +41,32 @@
             z-index: 0;
         }
         .glass-panel {
-            background: rgba(11, 10, 28, 0.78);
+            background: rgba(15, 20, 28, 0.82);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(244, 114, 182, 0.28);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(251, 191, 36, 0.28);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
         }
         .neon-text {
-            text-shadow: 0 0 14px rgba(236, 72, 153, 0.7), 0 0 28px rgba(34, 211, 238, 0.45);
+            text-shadow: 0 2px 12px rgba(245, 158, 11, 0.55), 0 4px 24px rgba(0, 0, 0, 0.85);
+        }
+        .gta-stunt-outline {
+            text-shadow:
+                -2px -2px 0 #000,
+                 2px -2px 0 #000,
+                -2px  2px 0 #000,
+                 2px  2px 0 #000,
+                 0px  4px 12px rgba(0, 0, 0, 0.9);
+        }
+        @keyframes stunt-pop {
+            0% { transform: translate(-50%, 14px) scale(0.86); opacity: 0; }
+            14% { transform: translate(-50%, 0px) scale(1.04); opacity: 1; }
+            24% { transform: translate(-50%, 0px) scale(1.0); opacity: 1; }
+            85% { transform: translate(-50%, 0px) scale(1.0); opacity: 1; }
+            100% { transform: translate(-50%, -8px) scale(0.96); opacity: 0; }
+        }
+        .stunt-popup-anim {
+            animation: stunt-pop 3.4s ease-out forwards;
         }
 
         /* Layout responsivo do HUD (Desktop >=768px & >500px altura vs Mobile/Landscape) */
@@ -270,7 +288,17 @@
         </div>
 
         <!-- BANNER / TOAST CENTRAL SUPERIOR -->
-        <div id="hud-toast" class="hidden fixed top-32 md:top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-2xl glass-panel border-cyan-400/50 text-center arcade-font text-xs sm:text-sm md:text-base font-bold text-white shadow-2xl whitespace-nowrap max-w-[92vw] truncate">
+        <div id="hud-toast" class="hidden fixed top-32 md:top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-2xl glass-panel border-amber-400/50 text-center arcade-font text-xs sm:text-sm md:text-base font-bold text-white shadow-2xl whitespace-nowrap max-w-[92vw] truncate">
+        </div>
+
+        <!-- POP-UP CLÁSSICO GTA DE BÓNUS DE ACROBACIA -->
+        <div id="hud-stunt-popup" class="hidden fixed bottom-24 sm:bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none text-center w-[92vw] max-w-lg">
+            <div id="hud-stunt-headline" class="arcade-font text-lg sm:text-2xl font-extrabold uppercase tracking-wider text-amber-300 gta-stunt-outline">
+                BÓNUS DE ACROBACIA INSANA!
+            </div>
+            <div id="hud-stunt-metrics" class="arcade-font text-xs sm:text-base font-bold text-white gta-stunt-outline mt-0.5">
+                Distância: 0.0m &nbsp;•&nbsp; Altura: 0.0m
+            </div>
         </div>
 
         <!-- AVISO DE CAPTURA POLICIAL -->
@@ -371,22 +399,22 @@
     <!-- =================================================================== -->
     <div id="screen-menu" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/75">
         <div class="glass-panel modal-scroll rounded-3xl p-5 sm:p-8 max-w-md w-full text-center border-fuchsia-400/40">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/40 mb-3">
-                🌴 Mundo Aberto Arcade 3D
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40 mb-3">
+                🌴 Edição Realista • Costa Dourada 3D
             </div>
             <h1 class="arcade-font text-3xl sm:text-4xl font-bold uppercase tracking-wide text-white neon-text leading-tight">
                 Grand Turbo City
             </h1>
-            <p class="arcade-font text-base sm:text-lg font-bold text-cyan-300 tracking-widest uppercase mb-5">
-                Vice Neon
+            <p class="arcade-font text-base sm:text-lg font-bold text-amber-300 tracking-widest uppercase mb-5">
+                Vice Neon • San Andreas Edition
             </p>
 
             <div class="flex flex-col gap-2.5">
-                <button id="btn-menu-campaign" type="button" class="w-full py-3.5 px-5 rounded-2xl arcade-font font-bold text-base uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 via-pink-500 to-cyan-400 text-slate-950 shadow-lg shadow-fuchsia-500/30 hover:brightness-110 active:scale-[0.98] transition">
+                <button id="btn-menu-campaign" type="button" class="w-full py-3.5 px-5 rounded-2xl arcade-font font-bold text-base uppercase tracking-wider bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-slate-950 shadow-lg shadow-amber-500/30 hover:brightness-110 active:scale-[0.98] transition">
                     ▶ Jogar Campanha
                 </button>
-                <button id="btn-menu-freeroam" type="button" class="w-full py-3 px-5 rounded-2xl arcade-font font-bold text-sm sm:text-base uppercase tracking-wider bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 border border-cyan-400/40 active:scale-[0.98] transition">
-                    🌴 Modo Livre
+                <button id="btn-menu-freeroam" type="button" class="w-full py-3 px-5 rounded-2xl arcade-font font-bold text-sm sm:text-base uppercase tracking-wider bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 active:scale-[0.98] transition">
+                    🌴 Modo Livre (Cidade, Ponte e Deserto)
                 </button>
                 <div class="grid grid-cols-2 gap-2.5">
                     <button id="btn-menu-garage" type="button" class="py-3 px-3 rounded-2xl arcade-font font-bold text-xs sm:text-sm uppercase bg-slate-900/80 hover:bg-slate-800 text-white border border-white/15 active:scale-[0.98] transition">

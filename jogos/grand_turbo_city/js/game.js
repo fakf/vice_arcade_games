@@ -10,8 +10,8 @@
         starsByLevel: {},
         customization: {
             vehicleId: 'coupe',
-            color: '#ec4899',
-            underglow: '#22d3ee'
+            color: '#dc2626',
+            underglow: null
         },
         timeOfDay: 'sunset',
         radioStation: 0,
@@ -19,7 +19,7 @@
         cameraMode: 0
     };
 
-    var RADIO_NAMES = ['📻 Vice Synthwave', '📻 Pop Arcade', '🔇 Silêncio'];
+    var RADIO_NAMES = ['📻 West Coast Synth', '📻 Radio Los Santos Pop', '🔇 Silêncio'];
     var TIME_MODES = ['sunset', 'day', 'night'];
     var TIME_ICONS = { sunset: '🌅', day: '☀️', night: '🌙' };
     var CAM_NAMES = ['3.ª Pessoa Perto', '3.ª Pessoa Longe', 'Vista Aérea Clássica'];
@@ -28,10 +28,10 @@
     // Estado Global do Jogo
     // =========================================================================
     var save = loadSave();
-    var gameState = 'MENU'; // MENU | LEVEL_SELECT | GARAGE | BRIEFING | PLAYING | PAUSED | VICTORY | CAMPAIGN_COMPLETE | FAILED
+    var gameState = 'MENU';
     var previousStateBeforeGarage = 'MENU';
     var selectedBriefingLevel = 1;
-    var currentPlayMode = 'free'; // 'free' | 'level'
+    var currentPlayMode = 'free';
     var currentLevelId = 1;
 
     var scene, camera, renderer;
@@ -45,10 +45,18 @@
     var garagePreviewVehicle = null;
     var freeRoamRepairTimer = 0;
     var toastTimer = 0;
+    var stuntPopupTimer = 0;
     var boundaryToastCooldown = 0;
     var audioUnlocked = false;
     var lastPhysicsEvents = {};
     var wasNitroActive = false;
+    var stuntCamBlend = 0;
+
+    // Pooled Skidmarks / Tire Ruts
+    var SKID_MAX = 160;
+    var skidPool = [];
+    var skidCursor = 0;
+    var skidAccum = 0;
 
     // Personagem a pé
     var player = {
@@ -70,7 +78,7 @@
     // Input (Teclado + Tátil)
     var keys = {};
     var touchMode = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    var touchManualOverride = null; // null = auto, true = on, false = off
+    var touchManualOverride = null;
     var joy = { active: false, pointerId: null, x: 0, y: 0 };
     var touchBtns = { nitro: false, drift: false };
 
@@ -99,10 +107,12 @@
                     if (typeof parsed.radioStation === 'number') merged.radioStation = parsed.radioStation % 3;
                     if (typeof parsed.muted === 'boolean') merged.muted = parsed.muted;
                     if (typeof parsed.cameraMode === 'number') merged.cameraMode = parsed.cameraMode % 3;
+                    if (typeof parsed.bestAirtime === 'number') merged.bestAirtime = parsed.bestAirtime;
+                    if (typeof parsed.bestJumpDist === 'number') merged.bestJumpDist = parsed.bestJumpDist;
                 }
             }
         } catch (e) {
-            // localStorage indisponível ou corrompido -> usa default
+            // usa default
         }
         enforceUnlockConstraints(merged);
         return merged;
@@ -112,7 +122,7 @@
         try {
             window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
         } catch (e) {
-            // ignora erros de quota/modo privado
+            // ignora erros de quota
         }
     }
 
@@ -126,61 +136,88 @@
                 s.customization.vehicleId = 'coupe';
             }
             if (s.customization.color && s.customization.color.toLowerCase() === '#fbbf24') {
-                s.customization.color = '#ec4899';
+                s.customization.color = '#dc2626';
             }
         }
     }
 
     // =========================================================================
-    // Personagem a Pé 3D Cartoon (Invencível)
+    // Personagem a Pé 3D Articulado Realista (100% Invencível)
     // =========================================================================
     function createPlayerMesh() {
         var group = new THREE.Group();
 
-        var legGeo = new THREE.BoxGeometry(0.24, 0.72, 0.24);
-        var legMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.7 });
-        var legL = new THREE.Mesh(legGeo, legMat);
-        legL.position.set(-0.18, 0.36, 0);
-        var legR = new THREE.Mesh(legGeo, legMat);
-        legR.position.set(0.18, 0.36, 0);
+        var shirtMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.72 });
+        var jeansMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.85 });
+        var skinMat  = new THREE.MeshStandardMaterial({ color: 0xd99b6c, roughness: 0.65 });
+        var shoeMat  = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.6 });
+        var trimMat  = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.5 });
+
+        // Articulated Legs (hip pivot at y = 0.82)
+        var legL = new THREE.Group();
+        legL.position.set(-0.14, 0.82, 0);
+        var thighL = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, 0.76, 8), jeansMat);
+        thighL.position.y = -0.38;
+        thighL.castShadow = true;
+        var shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.32), shoeMat);
+        shoeL.position.set(0, -0.76, 0.05);
+        shoeL.castShadow = true;
+        legL.add(thighL, shoeL);
+
+        var legR = new THREE.Group();
+        legR.position.set(0.14, 0.82, 0);
+        legR.add(thighL.clone(), shoeL.clone());
         group.add(legL, legR);
 
-        var torso = new THREE.Mesh(
-            new THREE.BoxGeometry(0.64, 0.75, 0.36),
-            new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.45 })
-        );
-        torso.position.y = 1.08;
+        // Tapered athletic torso (classic white tank/tee + belt)
+        var pelvis = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.18, 8), jeansMat);
+        pelvis.scale.set(1.15, 1, 0.8);
+        pelvis.position.y = 0.86;
+        group.add(pelvis);
+
+        var torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.23, 0.74, 10), shirtMat);
+        torso.scale.set(1.16, 1, 0.76);
+        torso.position.y = 1.26;
+        torso.castShadow = true;
         group.add(torso);
 
-        var armGeo = new THREE.BoxGeometry(0.2, 0.65, 0.2);
-        var armMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, roughness: 0.5 });
-        var armL = new THREE.Mesh(armGeo, armMat);
-        armL.position.set(-0.44, 1.08, 0);
-        var armR = new THREE.Mesh(armGeo, armMat);
-        armR.position.set(0.44, 1.08, 0);
+        // Articulated Arms (shoulder pivot at y = 1.54)
+        var armL = new THREE.Group();
+        armL.position.set(-0.36, 1.54, 0);
+        var upperArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.072, 0.66, 8), skinMat);
+        upperArmL.position.y = -0.31;
+        upperArmL.castShadow = true;
+        armL.add(upperArmL);
+
+        var armR = new THREE.Group();
+        armR.position.set(0.36, 1.54, 0);
+        armR.add(upperArmL.clone());
         group.add(armL, armR);
 
-        var head = new THREE.Mesh(
-            new THREE.SphereGeometry(0.32, 14, 12),
-            new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.6 })
-        );
-        head.position.y = 1.72;
+        // Head, sunglasses & sporty red cap
+        var head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 12), skinMat);
+        head.scale.set(0.94, 1.05, 0.96);
+        head.position.y = 1.84;
+        head.castShadow = true;
         group.add(head);
 
-        // Óculos de sol Vice Neon (+Z é a frente do avatar)
         var glasses = new THREE.Mesh(
-            new THREE.BoxGeometry(0.46, 0.14, 0.12),
+            new THREE.BoxGeometry(0.36, 0.09, 0.10),
             new THREE.MeshBasicMaterial({ color: 0x0f172a })
         );
-        glasses.position.set(0, 1.74, 0.27);
+        glasses.position.set(0, 1.86, 0.20);
         group.add(glasses);
 
-        var cap = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.33, 0.34, 0.16, 12),
-            new THREE.MeshStandardMaterial({ color: 0x22d3ee, roughness: 0.4 })
+        var capCrown = new THREE.Mesh(
+            new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52),
+            trimMat
         );
-        cap.position.y = 1.98;
-        group.add(cap);
+        capCrown.position.y = 1.87;
+        group.add(capCrown);
+
+        var capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.04, 0.24), trimMat);
+        capBrim.position.set(0, 1.93, 0.18);
+        group.add(capBrim);
 
         group.visible = false;
         scene.add(group);
@@ -193,13 +230,13 @@
     // =========================================================================
     function createDirectionArrow() {
         var group = new THREE.Group();
-        var mat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
-        var cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.7, 6), mat);
+        var mat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+        var cone = new THREE.Mesh(new THREE.ConeGeometry(0.72, 1.65, 8), mat);
         cone.rotation.x = Math.PI / 2;
         cone.position.z = 0.85;
         group.add(cone);
 
-        var shaft = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.38, 1.2), new THREE.MeshBasicMaterial({ color: 0xec4899 }));
+        var shaft = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.34, 1.15), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
         shaft.position.z = -0.35;
         group.add(shaft);
 
@@ -209,7 +246,63 @@
     }
 
     // =========================================================================
-    // Pickups de Nitro (8 raios néon giratórios, respawn 12s, +45 Nitro)
+    // Pooled Tire Skidmarks & Sand Ruts (Zero GC Allocations)
+    // =========================================================================
+    function initSkidPool() {
+        skidPool = [];
+        skidCursor = 0;
+        var geo = new THREE.PlaneGeometry(1, 1);
+        geo.rotateX(-Math.PI / 2);
+
+        for (var i = 0; i < SKID_MAX; i++) {
+            var mat = new THREE.MeshBasicMaterial({
+                color: 0x111318,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false,
+                polygonOffset: true,
+                polygonOffsetFactor: -2
+            });
+            var m = new THREE.Mesh(geo, mat);
+            m.visible = false;
+            scene.add(m);
+            skidPool.push({ mesh: m, mat: mat, age: 99, maxAge: 10, baseOpacity: 0.4 });
+        }
+    }
+
+    function addSkidMark(x, y, z, angle, width, length, isSand) {
+        if (!skidPool.length) return;
+        var item = skidPool[skidCursor];
+        skidCursor = (skidCursor + 1) % SKID_MAX;
+
+        item.mat.color.setHex(isSand ? 0x8f6838 : 0x111317);
+        item.baseOpacity = isSand ? 0.36 : 0.46;
+        item.mat.opacity = item.baseOpacity;
+        item.age = 0;
+        item.maxAge = isSand ? 8.5 : 11.0;
+
+        item.mesh.position.set(x, y + 0.055, z);
+        item.mesh.rotation.y = angle;
+        item.mesh.scale.set(width, 1, length);
+        item.mesh.visible = true;
+    }
+
+    function updateSkidMarks(dt) {
+        for (var i = 0; i < skidPool.length; i++) {
+            var it = skidPool[i];
+            if (!it.mesh.visible) continue;
+            it.age += dt;
+            if (it.age >= it.maxAge) {
+                it.mesh.visible = false;
+            } else if (it.age > it.maxAge * 0.65) {
+                var fade = 1 - (it.age - it.maxAge * 0.65) / (it.maxAge * 0.35);
+                it.mat.opacity = it.baseOpacity * Math.max(0, fade);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Pickups de Nitro
     // =========================================================================
     function createNitroPickups() {
         var spawns = (GTC.City && GTC.City.nitroSpawns) ? GTC.City.nitroSpawns : [
@@ -217,15 +310,16 @@
             { x: -40, z: 40 }, { x: 40, z: 40 }, { x: 108, z: 40 }, { x: 0, z: 120 }
         ];
         var boltMat = new THREE.MeshStandardMaterial({
-            color: 0x22d3ee,
-            emissive: 0xec4899,
-            emissiveIntensity: 0.7,
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.75,
             roughness: 0.2
         });
-        var ringMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
+        var ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
 
         for (var i = 0; i < spawns.length; i++) {
             var s = spawns[i];
+            var baseY = (GTC.City && GTC.City.getGroundHeight) ? GTC.City.getGroundHeight(s.x, s.z, 12) : 0;
             var g = new THREE.Group();
             var octa = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), boltMat);
             octa.scale.set(0.65, 1.35, 0.65);
@@ -237,9 +331,9 @@
             ring.position.y = 0.12;
             g.add(ring);
 
-            g.position.set(s.x, 0, s.z);
+            g.position.set(s.x, baseY, s.z);
             scene.add(g);
-            nitroPickups.push({ x: s.x, z: s.z, active: true, respawnTimer: 0, mesh: g });
+            nitroPickups.push({ x: s.x, baseY: baseY, z: s.z, active: true, respawnTimer: 0, mesh: g });
         }
     }
 
@@ -260,45 +354,79 @@
             if (player.inVehicle && player.vehicle) {
                 var dx = player.vehicle.x - p.x;
                 var dz = player.vehicle.z - p.z;
-                if (dx * dx + dz * dz <= 3.0 * 3.0) {
+                var dy = Math.abs(player.vehicle.y - p.baseY);
+                if (dx * dx + dz * dz <= 3.2 * 3.2 && dy < 3.5) {
                     player.vehicle.nitro = Math.min(100, (player.vehicle.nitro || 0) + 45);
                     p.active = false;
                     p.respawnTimer = 12.0;
                     p.mesh.visible = false;
                     if (GTC.Audio) GTC.Audio.playSfx('pickup');
-                    spawnParticles('sparks', p.x, 1.3, p.z, 12, '#22d3ee');
+                    spawnParticles('sparks', p.x, p.baseY + 1.3, p.z, 12, '#38bdf8');
                 }
             }
         }
     }
 
     // =========================================================================
-    // Sistema de Partículas 3D (Chamas Nitro, Faíscas, Confettis)
+    // Sistema de Partículas 3D + Fumo / Poeira Volumétrica Realista
     // =========================================================================
     var particleGeo = null;
 
+    function spawnPuff(kind, x, y, z, scaleStart) {
+        if (particles.length > 150) return;
+        var puffTex = GTC.Textures ? GTC.Textures.get('puff') : null;
+        var col = kind === 'sand' ? 0xd4b07a : (kind === 'nitro' ? 0x60a5fa : 0xe2e8f0);
+        var mat = new THREE.SpriteMaterial({
+            map: puffTex,
+            color: col,
+            transparent: true,
+            opacity: kind === 'sand' ? 0.52 : (kind === 'nitro' ? 0.85 : 0.45),
+            depthWrite: false
+        });
+        var sp = new THREE.Sprite(mat);
+        var s0 = scaleStart || (kind === 'nitro' ? 0.75 : 1.15);
+        sp.scale.set(s0, s0, 1);
+        sp.position.set(x + (Math.random() - 0.5) * 0.4, y, z + (Math.random() - 0.5) * 0.4);
+        scene.add(sp);
+
+        particles.push({
+            mesh: sp,
+            isPuff: true,
+            baseOpacity: mat.opacity,
+            s0: s0,
+            sEnd: kind === 'nitro' ? s0 * 0.35 : s0 * 2.6,
+            vx: (Math.random() - 0.5) * 1.8,
+            vy: kind === 'nitro' ? 0.5 : (1.1 + Math.random() * 1.3),
+            vz: (Math.random() - 0.5) * 1.8,
+            life: kind === 'nitro' ? 0.18 : 0.65,
+            maxLife: kind === 'nitro' ? 0.18 : 0.65,
+            gravity: 0
+        });
+    }
+
     function spawnParticles(type, x, y, z, count, colorHex) {
-        if (!particleGeo) particleGeo = new THREE.BoxGeometry(0.28, 0.28, 0.28);
-        var n = Math.min(count || 8, 40);
+        if (!particleGeo) particleGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+        var n = Math.min(count || 8, 36);
         for (var i = 0; i < n; i++) {
-            if (particles.length > 140) break;
-            var col = colorHex || (type === 'nitro' ? 0x22d3ee : (type === 'sparks' ? 0xfacc15 : 0xec4899));
+            if (particles.length > 160) break;
+            var col = colorHex || (type === 'nitro' ? 0xf59e0b : (type === 'sparks' ? 0xfacc15 : 0xfbbf24));
             if (type === 'confetti') {
-                var palette = [0xec4899, 0x22d3ee, 0xfacc15, 0x84cc16, 0xa855f7];
+                var palette = [0xf59e0b, 0x38bdf8, 0x4ade80, 0xf87171, 0xfacc15];
                 col = palette[i % palette.length];
             }
             var mesh = new THREE.Mesh(particleGeo, new THREE.MeshBasicMaterial({ color: col }));
             mesh.position.set(x, y, z);
             scene.add(mesh);
 
-            var spread = type === 'nitro' ? 2.5 : (type === 'confetti' ? 9 : 7);
+            var spread = type === 'nitro' ? 2.2 : (type === 'confetti' ? 9 : 7);
             particles.push({
                 mesh: mesh,
+                isPuff: false,
                 vx: (Math.random() - 0.5) * spread,
-                vy: (type === 'nitro' ? 1.2 : 4.5) + Math.random() * 4.5,
+                vy: (type === 'nitro' ? 1.0 : 4.5) + Math.random() * 4.5,
                 vz: (Math.random() - 0.5) * spread,
-                life: type === 'nitro' ? 0.28 : (type === 'confetti' ? 1.15 : 0.45),
-                maxLife: type === 'nitro' ? 0.28 : (type === 'confetti' ? 1.15 : 0.45),
+                life: type === 'nitro' ? 0.22 : (type === 'confetti' ? 1.15 : 0.42),
+                maxLife: type === 'nitro' ? 0.22 : (type === 'confetti' ? 1.15 : 0.42),
                 gravity: type === 'nitro' ? 0 : 16
             });
         }
@@ -314,19 +442,27 @@
                 particles.splice(i, 1);
                 continue;
             }
+            var t = 1 - (p.life / p.maxLife);
             p.vy -= p.gravity * dt;
             p.mesh.position.x += p.vx * dt;
-            p.mesh.position.y = Math.max(0.1, p.mesh.position.y + p.vy * dt);
+            p.mesh.position.y += p.vy * dt;
             p.mesh.position.z += p.vz * dt;
-            p.mesh.rotation.x += dt * 6;
-            p.mesh.rotation.y += dt * 5;
-            var s = Math.max(0.05, p.life / p.maxLife);
-            p.mesh.scale.set(s, s, s);
+
+            if (p.isPuff) {
+                var sc = p.s0 + (p.sEnd - p.s0) * t;
+                p.mesh.scale.set(sc, sc, 1);
+                p.mesh.material.opacity = p.baseOpacity * (1 - t);
+            } else {
+                p.mesh.rotation.x += dt * 6;
+                p.mesh.rotation.y += dt * 5;
+                var s = Math.max(0.05, 1 - t);
+                p.mesh.scale.set(s, s, s);
+            }
         }
     }
 
     function spawnCssConfetti() {
-        var colors = ['#ec4899', '#22d3ee', '#facc15', '#84cc16', '#a855f7', '#fb923c'];
+        var colors = ['#f59e0b', '#38bdf8', '#4ade80', '#ef4444', '#facc15', '#fb923c'];
         for (var i = 0; i < 36; i++) {
             var el = document.createElement('div');
             el.className = 'confetti-piece';
@@ -356,6 +492,9 @@
 
     function spawnVehicle(typeId, opts) {
         var o = Object.assign({ scene: scene }, opts || {});
+        if (o.y === undefined && GTC.City && GTC.City.getGroundHeight) {
+            o.y = GTC.City.getGroundHeight(o.x || 0, o.z || 0, 0);
+        }
         var v = GTC.Vehicles.createVehicle(typeId, o);
         if (v && v.mesh && !v.mesh.parent) {
             scene.add(v.mesh);
@@ -395,17 +534,18 @@
         if (player.vehicle && player.vehicle.driverMesh) {
             player.vehicle.driverMesh.visible = false;
         }
+        var gy = (GTC.City && GTC.City.getGroundHeight) ? GTC.City.getGroundHeight(x, z, player.y + 1) : 0;
         player.inVehicle = false;
         player.vehicle = null;
         player.x = x;
-        player.y = 0;
+        player.y = gy;
         player.z = z;
         player.vy = 0;
         player.isGrounded = true;
         player.angle = angle !== undefined ? angle : Math.PI;
         if (player.mesh) {
             player.mesh.visible = true;
-            player.mesh.position.set(x, 0, z);
+            player.mesh.position.set(x, gy, z);
             player.mesh.rotation.y = player.angle;
         }
         updateTouchButtonLabels();
@@ -415,10 +555,13 @@
         var r = radius || 0.65;
         var b = GTC.City.BOUNDS;
         if (x < b.minX + r || x > b.maxX - r || z < b.minZ + r || z > b.maxZ - r) return true;
+        if (GTC.City.isInDeepWater && GTC.City.isInDeepWater(x, z, player.y)) return true;
         var cols = GTC.City.colliders || [];
         for (var i = 0; i < cols.length; i++) {
             var c = cols[i];
             if (c.blocksPedestrian === false) continue;
+            if (c.minY !== undefined && player.y + 1.8 < c.minY) continue;
+            if (c.maxY !== undefined && player.y > c.maxY) continue;
             if (x + r > c.minX && x - r < c.maxX && z + r > c.minZ && z - r < c.maxZ) {
                 return true;
             }
@@ -435,6 +578,8 @@
             if (v.isBoss || v.aiRole === 'police' || v.aiRole === 'rival' || v.aiRole === 'fugitive' || v.aiRole === 'boss') continue;
             var dx = v.x - player.x;
             var dz = v.z - player.z;
+            var dy = Math.abs(v.y - player.y);
+            if (dy > 3.5) continue;
             var d = Math.sqrt(dx * dx + dz * dz);
             if (d <= bestD) {
                 bestD = d;
@@ -454,7 +599,6 @@
             var fz = Math.cos(v.angle);
             var rx = fz;
             var rz = -fx;
-            // Testa 4 posições: esquerda, direita, trás, frente (SPEC §4.4)
             var candidates = [
                 { x: v.x - rx * dist, z: v.z - rz * dist },
                 { x: v.x + rx * dist, z: v.z + rz * dist },
@@ -497,11 +641,11 @@
             player.z = pt.z;
             player.vy = 0;
         }
-        showToast('🔄 Reposto na estrada mais próxima!', 1.8);
+        showToast('🔄 Reposto na avenida mais próxima!', 1.8);
     }
 
     // =========================================================================
-    // Física da Personagem a Pé (SPEC §4.4)
+    // Física da Personagem a Pé (com suporte a Ponte e Dunas 3D!)
     // =========================================================================
     function updateOnFoot(dt) {
         var inX = 0;
@@ -525,18 +669,15 @@
             var ny = inY / Math.max(1, len);
 
             if (save.cameraMode === 2) {
-                // Vista Aérea Clássica: fixo a Norte
                 moveX = nx;
                 moveZ = ny;
             } else {
-                // 3.ª Pessoa: relativo à orientação horizontal da câmara
                 var camFwd = new THREE.Vector3();
                 camera.getWorldDirection(camFwd);
                 camFwd.y = 0;
                 if (camFwd.lengthSq() < 0.0001) camFwd.set(0, 0, -1);
                 camFwd.normalize();
                 var camRight = new THREE.Vector3(-camFwd.z, 0, camFwd.x);
-                // ny < 0 = frente, ny > 0 = trás
                 moveX = camRight.x * nx - camFwd.x * ny;
                 moveZ = camRight.z * nx - camFwd.z * ny;
             }
@@ -548,7 +689,6 @@
             var dx = moveX * player.speed * dt;
             var dz = moveZ * player.speed * dt;
 
-            // Resolução separada X depois Z
             if (!isPointBlockedForPedestrian(player.x + dx, player.z, 0.65)) {
                 player.x += dx;
             }
@@ -556,7 +696,6 @@
                 player.z += dz;
             }
 
-            // Clamp limites de Vice Neon
             var b = GTC.City.BOUNDS;
             var hitBound = false;
             if (player.x < b.minX + 0.7) { player.x = b.minX + 0.7; hitBound = true; }
@@ -564,11 +703,10 @@
             if (player.z < b.minZ + 0.7) { player.z = b.minZ + 0.7; hitBound = true; }
             if (player.z > b.maxZ - 0.7) { player.z = b.maxZ - 0.7; hitBound = true; }
             if (hitBound && boundaryToastCooldown <= 0) {
-                showToast('🌴 Limite de Vice Neon', 1.6);
+                showToast('🌴 Limite do Mapa', 1.6);
                 boundaryToastCooldown = 2.0;
             }
 
-            // Roda suavemente para encarar a direção de movimento
             var targetAng = Math.atan2(moveX, moveZ);
             var diff = targetAng - player.angle;
             while (diff > Math.PI) diff -= Math.PI * 2;
@@ -579,7 +717,8 @@
             player.speed = 0;
         }
 
-        // Salto (Espaço ou botão Drift/Saltar)
+        var groundH = (GTC.City && GTC.City.getGroundHeight) ? GTC.City.getGroundHeight(player.x, player.z, player.y + 0.6) : 0;
+
         if ((keys['Space'] || touchBtns.drift) && player.isGrounded) {
             player.vy = 13;
             player.isGrounded = false;
@@ -587,13 +726,12 @@
         }
         player.vy -= 34 * dt;
         player.y += player.vy * dt;
-        if (player.y <= 0) {
-            player.y = 0;
+        if (player.y <= groundH) {
+            player.y = groundH;
             player.vy = 0;
             player.isGrounded = true;
         }
 
-        // Animação da malha
         if (player.mesh) {
             player.mesh.visible = true;
             player.mesh.position.set(player.x, player.y, player.z);
@@ -616,7 +754,7 @@
     }
 
     // =========================================================================
-    // Atualização de Câmara (3 Modos + Menu + Garagem)
+    // Câmara (3 Modos + Câmara Cinemática Automática de Acrobacia nos Saltos!)
     // =========================================================================
     var camPos = new THREE.Vector3(-40, 12, 36);
     var camLook = new THREE.Vector3(-40, 2, 16);
@@ -633,11 +771,14 @@
 
     function updateCamera(dt) {
         if (gameState === 'MENU' || gameState === 'LEVEL_SELECT' || gameState === 'BRIEFING') {
-            var orbitAng = elapsedTime * 0.14;
-            var r = 85;
-            camera.position.set(Math.cos(orbitAng) * r, 38, Math.sin(orbitAng) * r);
-            camera.lookAt(0, 8, 0);
-            camera.fov += (60 - camera.fov) * Math.min(1, dt * 6);
+            var orbitAng = elapsedTime * 0.13;
+            var r = 96;
+            var mx = Math.cos(orbitAng) * r + 25;
+            var mz = Math.sin(orbitAng) * r;
+            camera.position.set(mx, 36, mz);
+            camera.lookAt(15, 9, 0);
+            if (GTC.City && GTC.City.updateShadowTarget) GTC.City.updateShadowTarget(15, 0);
+            camera.fov += (58 - camera.fov) * Math.min(1, dt * 6);
             camera.updateProjectionMatrix();
             return;
         }
@@ -645,10 +786,11 @@
         if (gameState === 'GARAGE') {
             var gx = -40;
             var gz = 22;
-            var ga = elapsedTime * 0.52;
-            camera.position.set(gx + Math.cos(ga) * 8.4, 2.9, gz + Math.sin(ga) * 8.4);
-            camera.lookAt(gx, -0.35, gz);
-            camera.fov += (52 - camera.fov) * Math.min(1, dt * 6);
+            var ga = elapsedTime * 0.48;
+            camera.position.set(gx + Math.cos(ga) * 7.8, 2.55, gz + Math.sin(ga) * 7.8);
+            camera.lookAt(gx, 0.65, gz);
+            if (GTC.City && GTC.City.updateShadowTarget) GTC.City.updateShadowTarget(gx, gz);
+            camera.fov += (48 - camera.fov) * Math.min(1, dt * 6);
             camera.updateProjectionMatrix();
             return;
         }
@@ -659,32 +801,67 @@
         var heading = player.angle;
         var spd = player.inVehicle && player.vehicle ? player.vehicle.speed : player.speed;
 
+        if (GTC.City && GTC.City.updateShadowTarget) {
+            GTC.City.updateShadowTarget(targetX, targetZ);
+        }
+
+        // Blend automatic GTA Cinematic Stunt Angle when high in the air!
+        var wantStuntCam = false;
+        if (save.cameraMode !== 2 && player.inVehicle && player.vehicle) {
+            var pv = player.vehicle;
+            if (!pv.isGrounded && pv.airtime > 0.36 && (pv.jumpPeakHeight || 0) > 2.0) {
+                wantStuntCam = true;
+            }
+        }
+        var targetBlend = wantStuntCam ? 1 : 0;
+        stuntCamBlend += (targetBlend - stuntCamBlend) * Math.min(1, dt * (wantStuntCam ? 3.5 : 7.0));
+
         var desiredPos = new THREE.Vector3();
-        var desiredLook = new THREE.Vector3(targetX, targetY + 1.6, targetZ);
+        var desiredLook = new THREE.Vector3(targetX, targetY + 1.5, targetZ);
 
         if (save.cameraMode === 2) {
-            // Vista Aérea Clássica fixa a Norte
             var h = 34 + Math.abs(spd) * 0.35;
             desiredPos.set(targetX, targetY + h, targetZ + 10);
             desiredLook.set(targetX, targetY, targetZ);
         } else {
             var distBack = player.inVehicle
-                ? (save.cameraMode === 0 ? 11 : 17)
-                : (save.cameraMode === 0 ? 7.5 : 11);
+                ? (save.cameraMode === 0 ? 10.2 : 16.0)
+                : (save.cameraMode === 0 ? 7.2 : 10.8);
             var heightUp = player.inVehicle
-                ? (save.cameraMode === 0 ? 4.8 : 8.0)
-                : (save.cameraMode === 0 ? 3.6 : 5.5);
+                ? (save.cameraMode === 0 ? 4.3 : 7.4)
+                : (save.cameraMode === 0 ? 3.4 : 5.2);
 
             var fx = Math.sin(heading);
             var fz = Math.cos(heading);
-            desiredPos.set(targetX - fx * distBack, targetY + heightUp, targetZ - fz * distBack);
-            desiredLook.set(targetX + fx * 3.5, targetY + 1.5, targetZ + fz * 3.5);
+            var rx = fz;
+            var rz = -fx;
+
+            var chaseX = targetX - fx * distBack;
+            var chaseY = targetY + heightUp;
+            var chaseZ = targetZ - fz * distBack;
+
+            // Dramatic low-angle side-chase stunt camera (Reel style!)
+            var stuntX = targetX - fx * 6.8 + rx * 6.2;
+            var stuntY = Math.max(1.2, targetY - 1.4);
+            var stuntZ = targetZ - fz * 6.8 + rz * 6.2;
+
+            desiredPos.set(
+                chaseX + (stuntX - chaseX) * stuntCamBlend,
+                chaseY + (stuntY - chaseY) * stuntCamBlend,
+                chaseZ + (stuntZ - chaseZ) * stuntCamBlend
+            );
+            desiredLook.set(
+                targetX + fx * (3.2 * (1 - stuntCamBlend * 0.6)),
+                targetY + 1.35,
+                targetZ + fz * (3.2 * (1 - stuntCamBlend * 0.6))
+            );
         }
 
-        var alpha = 1 - Math.exp(-7 * dt);
+        var alpha = 1 - Math.exp(-8 * dt);
         camPos.lerp(desiredPos, alpha);
         camLook.lerp(desiredLook, alpha);
         camera.position.copy(camPos);
+
         if (camShakeTime > 0) {
             camShakeTime -= dt;
             var mag = camShakeIntensity * Math.max(0, camShakeTime / 0.25);
@@ -694,7 +871,7 @@
         }
         camera.lookAt(camLook);
 
-        var targetFov = (lastPhysicsEvents && lastPhysicsEvents.nitroActive) ? 68 : 60;
+        var targetFov = (lastPhysicsEvents && lastPhysicsEvents.nitroActive) ? 68 : (wantStuntCam ? 54 : 59);
         if (Math.abs(camera.fov - targetFov) > 0.05) {
             camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 6);
             camera.updateProjectionMatrix();
@@ -702,7 +879,7 @@
     }
 
     // =========================================================================
-    // Minimapa 2D (Fixo a Norte com Seta Rotativa)
+    // Minimapa 2D (Mostra Deserto, Cidade, Praia e Ponte Suspensa Vermelha!)
     // =========================================================================
     var minimapCtx = null;
 
@@ -714,48 +891,59 @@
         var ctx2 = minimapCtx;
 
         ctx2.clearRect(0, 0, w, h);
-        ctx2.fillStyle = '#0f172a';
+        ctx2.fillStyle = '#1e293b';
         ctx2.fillRect(0, 0, w, h);
 
-        function mapX(wx) { return ((wx + 180) / 360) * w; }
+        // World X in [-240..200] (span 440), World Z in [-180..180] (span 360)
+        function mapX(wx) { return ((wx + 240) / 440) * w; }
         function mapZ(wz) { return ((wz + 180) / 360) * h; }
 
-        // Praia e Mar (Este)
-        ctx2.fillStyle = '#d97706';
-        ctx2.fillRect(mapX(118), 0, mapX(150) - mapX(118), h);
-        ctx2.fillStyle = '#0ea5e9';
+        // Deserto de Bone Canyon (Oeste)
+        ctx2.fillStyle = '#b48a52';
+        ctx2.fillRect(0, 0, mapX(-132), h);
+
+        // Praia e Oceano (Este)
+        ctx2.fillStyle = '#e0be80';
+        ctx2.fillRect(mapX(116), 0, mapX(150) - mapX(116), h);
+        ctx2.fillStyle = '#0369a1';
         ctx2.fillRect(mapX(150), 0, w - mapX(150), h);
 
         // Parque Central
-        ctx2.fillStyle = '#15803d';
+        ctx2.fillStyle = '#2d5a27';
         ctx2.fillRect(mapX(-110), mapZ(-30), mapX(-50) - mapX(-110), mapZ(30) - mapZ(-30));
 
-        // Estradas
-        ctx2.fillStyle = '#475569';
+        // Estradas Urbanas
+        ctx2.fillStyle = '#64748b';
         var rx = (GTC.City && GTC.City.ROAD_X) ? GTC.City.ROAD_X : [-120, -40, 40, 108];
         var rz = (GTC.City && GTC.City.ROAD_Z) ? GTC.City.ROAD_Z : [-120, -40, 40, 120];
-        var rw = (16 / 360) * w;
+        var rw = (16 / 440) * w;
         for (var i = 0; i < rx.length; i++) {
             ctx2.fillRect(mapX(rx[i]) - rw / 2, 0, rw, h);
         }
         for (var j = 0; j < rz.length; j++) {
-            ctx2.fillRect(0, mapZ(rz[j]) - rw / 2, mapX(116), rw);
+            ctx2.fillRect(mapX(-134), mapZ(rz[j]) - rw / 2, mapX(116) - mapX(-134), rw);
         }
 
-        // Marcos fixos (Oficina, Garagem, Lab)
-        ctx2.fillStyle = '#ec4899';
+        // Ponte Suspensa Vermelha e Viadutos!
+        ctx2.fillStyle = '#dc2626';
+        ctx2.fillRect(mapX(114), mapZ(-120) - rw * 0.45, mapX(178) - mapX(114), rw * 0.9);
+        ctx2.fillRect(mapX(114), mapZ(120) - rw * 0.45, mapX(178) - mapX(114), rw * 0.9);
+        ctx2.fillRect(mapX(176) - rw * 0.55, mapZ(-126), rw * 1.1, mapZ(126) - mapZ(-126));
+
+        // Marcos fixos (Oficina, Garagem, Lab, Acampamento do Deserto)
+        ctx2.fillStyle = '#f59e0b';
         ctx2.beginPath();
-        ctx2.arc(mapX(-32), mapZ(0), 3.2, 0, Math.PI * 2);
+        ctx2.arc(mapX(-32), mapZ(0), 3.0, 0, Math.PI * 2);
         ctx2.fill();
 
-        ctx2.fillStyle = '#84cc16';
+        ctx2.fillStyle = '#4ade80';
         ctx2.beginPath();
-        ctx2.arc(mapX(-108), mapZ(-72), 3, 0, Math.PI * 2);
+        ctx2.arc(mapX(-108), mapZ(-72), 2.8, 0, Math.PI * 2);
         ctx2.fill();
 
         ctx2.fillStyle = '#38bdf8';
         ctx2.beginPath();
-        ctx2.arc(mapX(36), mapZ(-108), 3, 0, Math.PI * 2);
+        ctx2.arc(mapX(36), mapZ(-108), 2.8, 0, Math.PI * 2);
         ctx2.fill();
 
         // Polícia a piscar vermelho/azul
@@ -770,7 +958,7 @@
 
         // Alvos da missão
         var mState = GTC.Missions.getState();
-        var pulse = 3.5 + Math.sin(elapsedTime * 7) * 1.4;
+        var pulse = 3.4 + Math.sin(elapsedTime * 7) * 1.3;
         for (var t = 0; t < mState.targets.length; t++) {
             var tg = mState.targets[t];
             ctx2.strokeStyle = tg.color || '#facc15';
@@ -785,11 +973,11 @@
         var pz = mapZ(player.z);
         ctx2.save();
         ctx2.translate(px, pz);
-        // Em canvas 2D: cima é -Y (Norte = -Z). angle=PI => Norte (rotação 0 no canvas)
-        // forward = (sin(angle), cos(angle)) => ângulo em canvas = atan2(sin(angle), -cos(angle))
         var canvasRot = Math.atan2(Math.sin(player.angle), -Math.cos(player.angle));
         ctx2.rotate(canvasRot);
         ctx2.fillStyle = '#ffffff';
+        ctx2.strokeStyle = '#0f172a';
+        ctx2.lineWidth = 1.5;
         ctx2.beginPath();
         ctx2.moveTo(0, -5.5);
         ctx2.lineTo(4, 4.5);
@@ -797,17 +985,30 @@
         ctx2.lineTo(-4, 4.5);
         ctx2.closePath();
         ctx2.fill();
+        ctx2.stroke();
         ctx2.restore();
     }
 
     // =========================================================================
-    // Toast / Mensagens & Atualização do HUD
+    // Toast, GTA Stunt Popup & Atualização do HUD
     // =========================================================================
     function showToast(msg, duration) {
         if (!dom.hudToast) return;
         dom.hudToast.textContent = msg;
         dom.hudToast.classList.remove('hidden');
         toastTimer = duration || 2.2;
+    }
+
+    function showStuntPopup(headline, distMeters, heightMeters, airSec) {
+        if (!dom.hudStuntPopup) return;
+        dom.hudStuntHeadline.textContent = headline;
+        dom.hudStuntMetrics.textContent =
+            'Distância: ' + distMeters.toFixed(1) + ' m   •   Altura: ' + heightMeters.toFixed(1) + ' m   •   Ar: ' + airSec.toFixed(1) + ' s';
+        dom.hudStuntPopup.classList.remove('hidden', 'stunt-popup-anim');
+        // Force reflow so animation restarts cleanly
+        void dom.hudStuntPopup.offsetWidth;
+        dom.hudStuntPopup.classList.add('stunt-popup-anim');
+        stuntPopupTimer = 3.4;
     }
 
     function formatClock(sec) {
@@ -866,7 +1067,6 @@
             dom.hudBossBar.classList.add('hidden');
         }
 
-        // Captura policial
         if (m.captureTimer > 0.05) {
             dom.hudCaptureWrap.classList.remove('hidden');
             var pct = Math.min(100, Math.round((m.captureTimer / m.captureLimit) * 100));
@@ -875,7 +1075,6 @@
             dom.hudCaptureWrap.classList.add('hidden');
         }
 
-        // Telemetria
         var kmh = 0;
         var shieldPct = 100;
         var nitroPct = 100;
@@ -906,7 +1105,6 @@
         dom.hudNitroPctDesk.textContent = nitroPct + '%';
         dom.hudNitroPctMob.textContent = nitroPct + '%';
 
-        // Botão contextual não-intrusivo (Oficina em Modo Livre ou Entrar em Veículo no PC)
         var nearVeh = !player.inVehicle ? findNearestEnterableVehicle(5.5) : null;
         if (m.canOpenGarageAtShop) {
             dom.hudContextWrap.classList.remove('hidden');
@@ -920,7 +1118,6 @@
             dom.hudContextWrap.classList.add('hidden');
         }
 
-        // Destaque verde no botão tátil Entrar quando perto de veículo a pé
         if (dom.touchBtnEnter) {
             if (!player.inVehicle && nearVeh) {
                 dom.touchBtnEnter.classList.add('highlight-enter');
@@ -975,7 +1172,7 @@
     }
 
     // =========================================================================
-    // Máquina de Estados & Ecrãs (SPEC §7.1)
+    // Máquina de Estados & Ecrãs
     // =========================================================================
     function setGameState(next) {
         gameState = next;
@@ -1014,7 +1211,7 @@
     }
 
     // =========================================================================
-    // Ecrã Seleção de Níveis + Toggle "Desbloquear Tudo"
+    // Seleção de Níveis
     // =========================================================================
     function openLevelSelect() {
         renderLevelsGrid();
@@ -1035,13 +1232,13 @@
             btn.type = 'button';
             btn.className = 'rounded-2xl p-3 text-left border transition flex flex-col justify-between min-h-[104px] ' +
                 (unlocked
-                    ? 'bg-slate-900/90 hover:bg-slate-800 border-cyan-400/35 hover:border-fuchsia-400/70 cursor-pointer active:scale-95'
+                    ? 'bg-slate-900/90 hover:bg-slate-800 border-amber-400/35 hover:border-amber-400/80 cursor-pointer active:scale-95'
                     : 'bg-slate-950/70 border-white/10 opacity-55 cursor-not-allowed');
 
             var top = document.createElement('div');
             top.className = 'flex items-center justify-between text-xs font-bold mb-1';
             var num = document.createElement('span');
-            num.className = 'arcade-font text-cyan-300';
+            num.className = 'arcade-font text-amber-300';
             num.textContent = 'NÍVEL ' + lv.id;
             var lock = document.createElement('span');
             lock.textContent = unlocked ? (earned > 0 ? '✅' : '▶') : '🔒';
@@ -1076,7 +1273,7 @@
     }
 
     // =========================================================================
-    // Ecrã Garagem 3D em Órbita (SPEC §5.2)
+    // Garagem 3D em Órbita
     // =========================================================================
     function openGarage(fromState) {
         previousStateBeforeGarage = fromState || gameState;
@@ -1098,7 +1295,7 @@
             x: -40,
             z: 22,
             angle: Math.PI * 0.75,
-            color: cust.color || '#ec4899',
+            color: cust.color || '#dc2626',
             underglow: cust.underglow,
             occupied: false
         });
@@ -1118,7 +1315,6 @@
         var goldOk = isGoldUnlocked();
         var cust = save.customization;
 
-        // 7 Veículos
         dom.garageVehiclesList.replaceChildren();
         var vehIds = ['coupe', 'moto', 'buggy', 'van', 'police', 'truck', 'gold_supercar'];
         for (var i = 0; i < vehIds.length; i++) {
@@ -1132,8 +1328,8 @@
             btn.type = 'button';
             btn.className = 'px-2.5 py-2 rounded-xl text-[11px] font-bold text-left border transition truncate ' +
                 (active
-                    ? 'bg-fuchsia-500/35 border-fuchsia-300 text-white'
-                    : (locked ? 'bg-slate-950/70 border-white/10 text-slate-500 cursor-not-allowed' : 'bg-slate-900/80 border-white/15 text-slate-200 hover:border-cyan-400/60'));
+                    ? 'bg-amber-500/35 border-amber-300 text-white'
+                    : (locked ? 'bg-slate-950/70 border-white/10 text-slate-500 cursor-not-allowed' : 'bg-slate-900/80 border-white/15 text-slate-200 hover:border-amber-400/60'));
             btn.textContent = (locked ? '🔒 ' : '') + spec.name;
             if (!locked) {
                 btn.addEventListener('click', (function (vid) {
@@ -1150,7 +1346,6 @@
             dom.garageVehiclesList.appendChild(btn);
         }
 
-        // 8 Cores
         dom.garageColorsList.replaceChildren();
         var colors = GTC.Vehicles.COLORS || [];
         for (var c = 0; c < colors.length; c++) {
@@ -1166,7 +1361,7 @@
                 (colLocked ? ' opacity-45 cursor-not-allowed' : '');
             cbtn.style.backgroundColor = col.hex;
             cbtn.textContent = colLocked ? '🔒' : (colActive ? '✔' : '');
-            if (col.hex.toLowerCase() === '#f8fafc' || col.hex.toLowerCase() === '#facc15') {
+            if (col.hex.toLowerCase() === '#f8fafc' || col.hex.toLowerCase() === '#f3e8c8' || col.hex.toLowerCase() === '#fbbf24') {
                 cbtn.style.color = '#0f172a';
             }
             if (!colLocked) {
@@ -1185,7 +1380,6 @@
             dom.garageColorsList.appendChild(cbtn);
         }
 
-        // 6 Underglows
         dom.garageUnderglowsList.replaceChildren();
         var glows = GTC.Vehicles.UNDERGLOWS || [];
         for (var u = 0; u < glows.length; u++) {
@@ -1194,7 +1388,7 @@
             var ubtn = document.createElement('button');
             ubtn.type = 'button';
             ubtn.className = 'px-2 py-2 rounded-xl text-[10px] font-bold border transition truncate ' +
-                (uActive ? 'bg-cyan-500/35 border-cyan-300 text-white' : 'bg-slate-900/80 border-white/15 text-slate-300 hover:border-cyan-400/50');
+                (uActive ? 'bg-amber-500/35 border-amber-300 text-white' : 'bg-slate-900/80 border-white/15 text-slate-300 hover:border-amber-400/50');
             ubtn.textContent = ug.name;
             ubtn.addEventListener('click', (function (hexVal) {
                 return function () {
@@ -1219,16 +1413,16 @@
         persistSave();
 
         if (previousStateBeforeGarage === 'PLAYING' || previousStateBeforeGarage === 'PAUSED') {
-            // Se estamos em Modo Livre, aplica a nova personalização / veículo imediatamente
             if (currentPlayMode === 'free' && player.inVehicle && player.vehicle) {
                 var oldV = player.vehicle;
                 var ox = oldV.x;
+                var oy = oldV.y;
                 var oz = oldV.z;
                 var oa = oldV.angle;
                 if (oldV.typeId !== save.customization.vehicleId) {
                     removeVehicle(oldV);
                     var newV = spawnVehicle(save.customization.vehicleId, {
-                        x: ox, z: oz, angle: oa,
+                        x: ox, y: oy, z: oz, angle: oa,
                         color: save.customization.color,
                         underglow: save.customization.underglow
                     });
@@ -1244,7 +1438,7 @@
     }
 
     // =========================================================================
-    // Briefing, Início de Missão / Modo Livre, Vitória e Falha
+    // Briefing, Missões, Vitória e Falha
     // =========================================================================
     function openBriefing(levelId) {
         var lv = GTC.Missions.LEVELS[levelId - 1];
@@ -1286,7 +1480,7 @@
         clearAllVehicles();
         GTC.Missions.startFreeRoam(buildMissionContext());
         setGameState('PLAYING');
-        showToast('🌴 Bem-vindo ao Modo Livre de Vice Neon!', 2.4);
+        showToast('🌴 Explora a Cidade, a Ponte Vermelha (Este) e as Dunas do Deserto (Oeste)!', 3.2);
     }
 
     function launchLevel(levelId) {
@@ -1344,12 +1538,10 @@
         var dt = Math.min(Math.max(rawDt, 0.001), 0.05);
         elapsedTime += dt;
 
-        // Atualiza mundo (água, oficina, peões) mesmo no Menu/Garagem
         if (GTC.City && GTC.City.update) {
             GTC.City.update(dt, elapsedTime, vehicles);
         }
 
-        // Atualiza underglows de todos os veículos ativos + preview da Garagem
         if (GTC.Vehicles && GTC.Vehicles.updateUnderglow) {
             for (var u = 0; u < vehicles.length; u++) {
                 GTC.Vehicles.updateUnderglow(vehicles[u], elapsedTime);
@@ -1365,6 +1557,7 @@
             if (dirArrow) dirArrow.visible = false;
         }
 
+        updateSkidMarks(dt);
         updateParticles(dt);
         updateCamera(dt);
         renderer.render(scene, camera);
@@ -1385,8 +1578,14 @@
             toastTimer -= dt;
             if (toastTimer <= 0 && dom.hudToast) dom.hudToast.classList.add('hidden');
         }
+        if (stuntPopupTimer > 0) {
+            stuntPopupTimer -= dt;
+            if (stuntPopupTimer <= 0 && dom.hudStuntPopup) {
+                dom.hudStuntPopup.classList.add('hidden');
+                dom.hudStuntPopup.classList.remove('stunt-popup-anim');
+            }
+        }
 
-        // Pausa breve de reparação expresso em Modo Livre quando escudo <= 0
         if (freeRoamRepairTimer > 0) {
             freeRoamRepairTimer -= dt;
             if (freeRoamRepairTimer <= 0 && player.inVehicle && player.vehicle) {
@@ -1404,7 +1603,6 @@
 
         lastPhysicsEvents = {};
 
-        // Input e física do jogador
         if (player.inVehicle && player.vehicle) {
             var v = player.vehicle;
             var throttle = 0;
@@ -1436,34 +1634,67 @@
             player.angle = v.angle;
             player.speed = v.speed;
 
-            // Som do motor
             if (GTC.Audio) {
                 var spdNorm = Math.min(1, Math.abs(v.speed) / (v.spec ? v.spec.nitro : 70));
-                GTC.Audio.updateEngine(spdNorm, v.typeId === 'moto', true);
+                GTC.Audio.updateEngine(spdNorm, v.typeId, true);
             }
 
-            // Efeitos dos eventos de física
+            var fx = Math.sin(v.angle);
+            var fz = Math.cos(v.angle);
+            var rx = fz;
+            var rz = -fx;
+
+            // Tire Tracks & Volumetric Smoke / Desert Sand Dust!
+            skidAccum += dt;
+            var isMoto = !!(v.spec && v.spec.isMoto);
+            var wantSkid = v.isGrounded && (ev.drifting || (ev.braking && Math.abs(v.speed) > 14) || (ev.onSand && Math.abs(v.speed) > 10));
+            if (wantSkid && skidAccum >= 0.045) {
+                skidAccum = 0;
+                var rearBack = isMoto ? 0.95 : 1.38;
+                var bxSkid = v.x - fx * rearBack;
+                var bzSkid = v.z - fz * rearBack;
+                if (isMoto) {
+                    addSkidMark(bxSkid, v.y, bzSkid, v.angle, 0.30, 1.35, ev.onSand);
+                } else {
+                    var trackHalf = 0.95;
+                    addSkidMark(bxSkid - rx * trackHalf, v.y, bzSkid - rz * trackHalf, v.angle, 0.34, 1.35, ev.onSand);
+                    addSkidMark(bxSkid + rx * trackHalf, v.y, bzSkid + rz * trackHalf, v.angle, 0.34, 1.35, ev.onSand);
+                }
+            }
+
+            // Billowing Sand Dust on Beach & Desert Dunes
+            if (v.isGrounded && ev.onSand && Math.abs(v.speed) > 11 && Math.random() < 0.65) {
+                spawnPuff('sand', v.x - fx * 1.6, v.y + 0.35, v.z - fz * 1.6, isMoto ? 0.85 : 1.15);
+            }
+
+            // Tire Smoke on Asphalt Drift / Hard Braking
+            if (v.isGrounded && !ev.onSand && (ev.drifting || (ev.braking && Math.abs(v.speed) > 18)) && Math.random() < 0.65) {
+                spawnPuff('smoke', v.x - fx * 1.5, v.y + 0.32, v.z - fz * 1.5, 0.95);
+            }
+
+            // Nitro Exhaust Flames
             if (ev.nitroActive) {
                 if (!wasNitroActive && GTC.Audio) GTC.Audio.playSfx('nitro');
-                var bx = v.x - Math.sin(v.angle) * 2.2;
-                var bz = v.z - Math.cos(v.angle) * 2.2;
-                if (Math.random() < 0.7) spawnParticles('nitro', bx, v.y + 0.55, bz, 2, '#22d3ee');
+                var bx = v.x - fx * 2.25;
+                var bz = v.z - fz * 2.25;
+                if (Math.random() < 0.75) {
+                    spawnPuff('nitro', bx, v.y + 0.45, bz, 0.72);
+                    spawnParticles('nitro', bx, v.y + 0.45, bz, 1, '#f59e0b');
+                }
             }
             wasNitroActive = !!ev.nitroActive;
-            if (input.drift && Math.abs(v.speed) > 10 && Math.random() < 0.55) {
-                var driftCol = (v.underglow && v.underglow !== 'rainbow') ? v.underglow : '#ec4899';
-                var drx = v.x - Math.sin(v.angle) * 1.6;
-                var drz = v.z - Math.cos(v.angle) * 1.6;
-                spawnParticles('sparks', drx, v.y + 0.2, drz, 1, driftCol);
+
+            if (ev.waterSplash) {
+                showToast('🌊 Splash na Baía! De volta à avenida em segurança!', 2.2);
             }
             if (ev.hitWallSpeed > 22) {
                 if (GTC.Audio) GTC.Audio.playSfx('hit');
-                spawnParticles('sparks', v.x, v.y + 1.0, v.z, 10, '#facc15');
+                spawnParticles('sparks', v.x, v.y + 0.9, v.z, 10, '#facc15');
                 triggerCameraShake(0.45, 0.2);
             }
             if (ev.hitVehicleSpeed > 14) {
                 if (GTC.Audio) GTC.Audio.playSfx('hit');
-                spawnParticles('sparks', v.x, v.y + 1.0, v.z, 10, '#facc15');
+                spawnParticles('sparks', v.x, v.y + 0.9, v.z, 10, '#facc15');
                 triggerCameraShake(0.35, 0.18);
                 if (currentPlayMode === 'free') {
                     GTC.Missions.onFreeRoamCollision(buildMissionContext());
@@ -1480,24 +1711,28 @@
             }
             if (ev.landedBigJump) {
                 if (GTC.Audio) GTC.Audio.playSfx('jump');
-                spawnParticles('confetti', v.x, v.y + 1.2, v.z, 16, '#facc15');
-                triggerCameraShake(0.32, 0.18);
+                spawnPuff(ev.onSand ? 'sand' : 'smoke', v.x, v.y + 0.4, v.z, 1.5);
+                triggerCameraShake(0.34, 0.18);
+
                 var airSec = Math.round((ev.airtime || 0.7) * 10) / 10;
-                var prevBest = Number(save.bestAirtime) || 0;
-                if (airSec > prevBest) {
-                    save.bestAirtime = airSec;
+                var jumpDist = ev.jumpDistance || (airSec * 42);
+                var jumpH = ev.jumpHeight || (airSec * 5.2);
+                var prevBestDist = Number(save.bestJumpDist) || 0;
+
+                if (jumpDist > prevBestDist) {
+                    save.bestJumpDist = Math.round(jumpDist * 10) / 10;
+                    save.bestAirtime = Math.max(Number(save.bestAirtime) || 0, airSec);
                     persistSave();
-                    showToast('🏆 NOVO RECORDE DE SALTO: ' + airSec.toFixed(1) + 's! +25 Nitro!', 2.5);
+                    showStuntPopup('🏆 RECORDE DE ACROBACIA INSANA!', jumpDist, jumpH, airSec);
                 } else {
-                    showToast('🌟 SALTO INCRÍVEL (' + airSec.toFixed(1) + 's)! +25 Nitro!', 2.0);
+                    showStuntPopup('🔥 BÓNUS DE ACROBACIA INSANA! (+25 NITRO)', jumpDist, jumpH, airSec);
                 }
             }
             if (ev.hitBoundary && boundaryToastCooldown <= 0) {
-                showToast('🌴 Limite de Vice Neon', 1.6);
+                showToast('🌴 Limite do Mapa', 1.6);
                 boundaryToastCooldown = 2.0;
             }
 
-            // Escudo chegou a 0
             if (v.shield <= 0) {
                 v.shield = 0;
                 if (GTC.Audio) GTC.Audio.playSfx('hit');
@@ -1519,11 +1754,9 @@
             if (GTC.Audio) GTC.Audio.updateEngine(0, false, false);
         }
 
-        // Atualiza pickups de Nitro e Missões/IA
         updateNitroPickups(dt);
         GTC.Missions.update(buildMissionContext(), dt);
 
-        // Seta 3D direcional acima do jogador
         var mState = GTC.Missions.getState();
         if (dirArrow) {
             if (mState.primaryTarget) {
@@ -1538,7 +1771,7 @@
     }
 
     // =========================================================================
-    // Ações Rápidas (Rádio, Câmara, Hora do Dia, Som, Buzina/Sirene/Acenar)
+    // Ações Rápidas
     // =========================================================================
     function cycleCamera() {
         save.cameraMode = (save.cameraMode + 1) % 3;
@@ -1559,7 +1792,7 @@
         persistSave();
         if (GTC.City) GTC.City.setTimeOfDay(save.timeOfDay);
         dom.btnHudTime.textContent = TIME_ICONS[save.timeOfDay] || '🌅';
-        var names = { sunset: 'Pôr-do-Sol', day: 'Dia', night: 'Noite Néon' };
+        var names = { sunset: 'Pôr-do-Sol Californiano', day: 'Dia Soalheiro', night: 'Noite Urbana' };
         showToast((TIME_ICONS[save.timeOfDay] || '') + ' ' + names[save.timeOfDay], 1.6);
     }
 
@@ -1575,9 +1808,23 @@
         if (gameState !== 'PLAYING') return;
         if (player.inVehicle && player.vehicle) {
             if (player.vehicle.typeId === 'police') {
-                player.vehicle.sirenOn = !player.vehicle.sirenOn;
-                if (GTC.Audio) GTC.Audio.playSfx('sirenToggle');
-                showToast(player.vehicle.sirenOn ? '🚨 Sirene ligada!' : '🚨 Sirene desligada!', 1.4);
+                var pv = player.vehicle;
+                if (!pv.sirenOn) {
+                    pv.sirenOn = true;
+                    pv.sirenMode = 'wail';
+                    if (GTC.Audio) GTC.Audio.playSfx('policeChirp');
+                    showToast('🚨 Sirene Policial: WAIL (Clássica)', 1.6);
+                } else if (pv.sirenMode !== 'yelp') {
+                    pv.sirenOn = true;
+                    pv.sirenMode = 'yelp';
+                    if (GTC.Audio) GTC.Audio.playSfx('policeHorn');
+                    showToast('🚨 Sirene Policial: YELP (Perseguição Rápida)', 1.6);
+                } else {
+                    pv.sirenOn = false;
+                    pv.sirenMode = null;
+                    if (GTC.Audio) GTC.Audio.playSfx('sirenOff');
+                    showToast('🔇 Sirene desligada', 1.4);
+                }
             } else {
                 if (GTC.Audio) GTC.Audio.playSfx('horn');
             }
@@ -1597,7 +1844,7 @@
                 GTC.Audio.setRadioStation(save.radioStation);
             }
         } catch (e) {
-            // ignora bloqueios do browser
+            // ignora bloqueios
         }
     }
 
@@ -1634,14 +1881,12 @@
             keys[e.code] = false;
         });
 
-        // Auto-pausa ao perder foco do separador (SPEC §10)
         document.addEventListener('visibilitychange', function () {
             if (document.hidden && gameState === 'PLAYING') {
                 setGameState('PAUSED');
             }
         });
 
-        // Resize / Rotação de telemóvel
         window.addEventListener('resize', function () {
             if (!renderer || !camera) return;
             var w = window.innerWidth;
@@ -1652,7 +1897,6 @@
             renderer.setSize(w, h);
         });
 
-        // Botões Menu Principal
         dom.btnMenuCampaign.addEventListener('click', function () {
             var nextLv = Math.min(10, save.unlockedLevel);
             openBriefing(nextLv);
@@ -1661,32 +1905,26 @@
         dom.btnMenuGarage.addEventListener('click', function () { openGarage('MENU'); });
         dom.btnMenuLevels.addEventListener('click', openLevelSelect);
 
-        // Seleção de Níveis
         dom.btnToggleUnlockAll.addEventListener('click', toggleUnlockAll);
         dom.btnLevelsBack.addEventListener('click', function () { setGameState('MENU'); });
 
-        // Garagem
         dom.btnGarageSave.addEventListener('click', closeGarageAndReturn);
 
-        // Briefing
         dom.btnBriefingStart.addEventListener('click', function () { launchLevel(selectedBriefingLevel); });
         dom.btnBriefingBack.addEventListener('click', openLevelSelect);
 
-        // HUD 5 botões rápidos
         dom.btnHudCamera.addEventListener('click', cycleCamera);
         dom.btnHudRadio.addEventListener('click', cycleRadio);
         dom.btnHudTime.addEventListener('click', cycleTimeOfDay);
         dom.btnHudSound.addEventListener('click', toggleMute);
         dom.btnHudPause.addEventListener('click', function () { setGameState('PAUSED'); });
 
-        // Botão contextual HUD
         dom.btnHudContext.addEventListener('click', function () {
             var act = dom.btnHudContext.dataset.action;
             if (act === 'garage') openGarage('PLAYING');
             else if (act === 'enter') toggleEnterExitVehicle();
         });
 
-        // Pausa
         dom.btnPauseResume.addEventListener('click', function () { setGameState('PLAYING'); });
         dom.btnPauseRecover.addEventListener('click', function () {
             recoverToNearestRoad();
@@ -1709,7 +1947,6 @@
             setGameState('MENU');
         });
 
-        // Vitória
         dom.btnVictoryNext.addEventListener('click', function () {
             if (currentLevelId >= 10) launchFreeRoam();
             else openBriefing(currentLevelId + 1);
@@ -1717,11 +1954,9 @@
         dom.btnVictoryReplay.addEventListener('click', function () { launchLevel(currentLevelId); });
         dom.btnVictoryLevels.addEventListener('click', openLevelSelect);
 
-        // Falha
         dom.btnFailedRetry.addEventListener('click', function () { launchLevel(currentLevelId); });
         dom.btnFailedLevels.addEventListener('click', openLevelSelect);
 
-        // Controlos Táteis: Joystick Esquerdo
         setupJoystick();
         setupTouchButtons();
     }
@@ -1814,7 +2049,9 @@
             'hud-progress', 'hud-race-pos', 'hud-wanted', 'hud-boss-bar', 'hud-boss-hp-text', 'hud-boss-hp-fill',
             'hud-speed-mob', 'hud-shield-mob', 'hud-shield-pct-mob', 'hud-nitro-mob', 'hud-nitro-pct-mob',
             'hud-speed-desk', 'hud-shield-desk', 'hud-shield-pct-desk', 'hud-nitro-desk', 'hud-nitro-pct-desk',
-            'hud-vehicle-name', 'hud-radio-label', 'hud-toast', 'hud-capture-wrap', 'hud-capture-fill',
+            'hud-vehicle-name', 'hud-radio-label', 'hud-toast',
+            'hud-stunt-popup', 'hud-stunt-headline', 'hud-stunt-metrics',
+            'hud-capture-wrap', 'hud-capture-fill',
             'hud-context-wrap', 'btn-hud-context', 'minimap-canvas',
             'btn-hud-camera', 'btn-hud-radio', 'btn-hud-time', 'btn-hud-sound', 'btn-hud-pause',
             'touch-controls', 'joystick-zone', 'joystick-knob',
@@ -1842,15 +2079,29 @@
         cacheDom();
 
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.3, 420);
+        camera = new THREE.PerspectiveCamera(59, window.innerWidth / window.innerHeight, 0.35, 520);
         renderer = new THREE.WebGLRenderer({ canvas: dom.gameCanvas, antialias: true, powerPreference: 'high-performance' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setSize(window.innerWidth, window.innerHeight);
 
-        if (GTC.Textures && GTC.Textures.init) GTC.Textures.init();
+        // Realistic rendering pipeline: Soft real-time shadows + Filmic tone mapping
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        if (THREE.ACESFilmicToneMapping !== undefined) {
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.08;
+        }
+
+        var maxAniso = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy)
+            ? renderer.capabilities.getMaxAnisotropy()
+            : 4;
+
+        if (GTC.Textures && GTC.Textures.init) GTC.Textures.init(maxAniso);
         if (GTC.City && GTC.City.build) GTC.City.build(scene);
+        if (GTC.City && GTC.City.initEnvironment) GTC.City.initEnvironment(renderer);
         if (GTC.City && GTC.City.setTimeOfDay) GTC.City.setTimeOfDay(save.timeOfDay);
 
+        initSkidPool();
         createPlayerMesh();
         createDirectionArrow();
         createNitroPickups();

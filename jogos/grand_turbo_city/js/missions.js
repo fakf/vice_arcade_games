@@ -377,7 +377,7 @@
         if (!nodes.length || count <= 0) return;
 
         var types = ['coupe', 'van', 'buggy', 'moto'];
-        var colors = ['#22d3ee', '#facc15', '#84cc16', '#a855f7', '#f8fafc', '#ec4899'];
+        var colors = ['#cbd5e1', '#334155', '#f3e8c8', '#1e3a8a', '#b91c1c', '#f8fafc', '#166534'];
         var px = ctx.player.x;
         var pz = ctx.player.z;
 
@@ -473,19 +473,55 @@
 
     function setWantedStars(ctx, stars) {
         var clamped = Math.max(0, Math.min(3, stars));
+        var prev = state.wantedStars;
         if (clamped !== state.wantedStars) {
             state.wantedStars = clamped;
             if (clamped === 0) {
                 state.captureTimer = 0;
                 state.escapeTimer = 0;
+            } else if (clamped > prev && ctx && ctx.audio && ctx.audio.playSfx) {
+                ctx.audio.playSfx('policeChirp');
             }
             syncPoliceCount(ctx);
         }
     }
 
     function updateSirenAudio(ctx) {
-        var playerSiren = ctx.player.inVehicle && ctx.player.vehicle && ctx.player.vehicle.typeId === 'police' && ctx.player.vehicle.sirenOn;
-        if (ctx.audio && ctx.audio.setSirenActive) {
+        var pVeh = (ctx.player && ctx.player.inVehicle) ? ctx.player.vehicle : null;
+        var playerSiren = pVeh && pVeh.typeId === 'police' && pVeh.sirenOn;
+        var playerMode = playerSiren ? (pVeh.sirenMode || 'wail') : null;
+
+        if (ctx.audio && ctx.audio.updatePoliceContext) {
+            var minDist = Infinity;
+            var closingSpeed = 0;
+            var px = ctx.player.x;
+            var pz = ctx.player.z;
+            var pVx = pVeh ? Math.sin(pVeh.angle) * pVeh.speed : 0;
+            var pVz = pVeh ? Math.cos(pVeh.angle) * pVeh.speed : 0;
+
+            for (var i = 0; i < policeVehicles.length; i++) {
+                var pv = policeVehicles[i];
+                if (!pv) continue;
+                var d = dist2D(pv.x, pv.z, px, pz);
+                if (d < minDist) {
+                    minDist = d;
+                    if (d > 0.5) {
+                        var dirX = (px - pv.x) / d;
+                        var dirZ = (pz - pv.z) / d;
+                        var cVx = Math.sin(pv.angle) * pv.speed;
+                        var cVz = Math.cos(pv.angle) * pv.speed;
+                        closingSpeed = (cVx - pVx) * dirX + (cVz - pVz) * dirZ;
+                    }
+                }
+            }
+
+            ctx.audio.updatePoliceContext({
+                playerSirenMode: playerMode,
+                policeCount: state.wantedStars > 0 ? policeVehicles.length : 0,
+                minDist: minDist,
+                closingSpeed: closingSpeed
+            });
+        } else if (ctx.audio && ctx.audio.setSirenActive) {
             ctx.audio.setSirenActive(state.wantedStars > 0 || !!playerSiren);
         }
     }
@@ -1765,12 +1801,13 @@
             { typeId: 'coupe', x: 40, z: 120, angle: Math.PI / 2 },
             { typeId: 'moto', x: -40, z: 120, angle: -Math.PI / 2 }
         ];
-        var parkedColors = ['#22d3ee', '#ec4899', '#84cc16', '#facc15', '#f8fafc', '#a855f7', '#ef4444', '#22d3ee'];
+        var parkedColors = ['#f3e8c8', '#16a34a', '#eab308', '#e2e8f0', '#f8fafc', '#334155', '#dc2626', '#2563eb'];
         for (var i = 0; i < parked.length; i++) {
             var p = parked[i];
+            var py = (ctx.city && ctx.city.getGroundHeight) ? ctx.city.getGroundHeight(p.x, p.z, 0) : 0;
             ctx.spawnVehicle(p.typeId, {
-                x: p.x, z: p.z, angle: p.angle || 0,
-                color: p.typeId === 'police' ? '#f8fafc' : parkedColors[i % parkedColors.length],
+                x: p.x, y: py, z: p.z, angle: p.angle || 0,
+                color: p.typeId === 'police' ? '#f8fafc' : (p.color || parkedColors[i % parkedColors.length]),
                 underglow: null,
                 isAI: false
             });
