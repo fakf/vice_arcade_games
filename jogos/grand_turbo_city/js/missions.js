@@ -278,20 +278,44 @@
         var desiredAngle = angleTo(v.x, v.z, targetX, targetZ);
         var diff = normalizeAngle(desiredAngle - v.angle);
 
-        // Desvio frontal simples contra obstáculos AABB
+        // Desvio frontal simples contra obstáculos AABB e paredes traseiras/laterais de rampas
         var fx = Math.sin(v.angle);
         var fz = Math.cos(v.angle);
-        var lookDist = 6.5;
+        var lookDist = 7.0;
         var probeX = v.x + fx * lookDist;
         var probeZ = v.z + fz * lookDist;
         var colliders = (city && city.colliders) ? city.colliders : [];
         var blockedAhead = false;
+        var rampSteerHint = 0;
+
         for (var i = 0; i < colliders.length; i++) {
             var c = colliders[i];
             if (c.blocksVehicles === false) continue;
+            if (c.minY !== undefined && c.minY > 2.5) continue;
             if (probeX >= c.minX - 1.2 && probeX <= c.maxX + 1.2 && probeZ >= c.minZ - 1.2 && probeZ <= c.maxZ + 1.2) {
                 blockedAhead = true;
                 break;
+            }
+        }
+
+        if (!blockedAhead && city && city.ramps) {
+            for (var rIdx = 0; rIdx < city.ramps.length; rIdx++) {
+                var rm = city.ramps[rIdx];
+                var rdx = probeX - rm.x;
+                var rdz = probeZ - rm.z;
+                var hl = rm.length * 0.5 + 2.0;
+                var hw = rm.width * 0.5 + 2.0;
+                var along = rdx * rm.dirX + rdz * rm.dirZ;
+                var across = rdx * (-rm.dirZ) + rdz * rm.dirX;
+                if (Math.abs(along) <= hl && Math.abs(across) <= hw) {
+                    var rDot = fx * rm.dirX + fz * rm.dirZ;
+                    // Se a IA vem em sentido contrário à rampa (parede alta), desvia para a faixa livre
+                    if (rDot < 0.35) {
+                        blockedAhead = true;
+                        rampSteerHint = across >= 0 ? 1 : -1;
+                        break;
+                    }
+                }
             }
         }
 
@@ -301,7 +325,7 @@
             steer = diff > 0 ? -Math.min(1, diff * 1.8) : Math.min(1, -diff * 1.8);
         }
         if (blockedAhead) {
-            steer = diff >= 0 ? -1 : 1;
+            steer = rampSteerHint !== 0 ? rampSteerHint : (diff >= 0 ? -1 : 1);
         }
 
         // Reduz velocidade em curvas apertadas ou trânsito à frente
@@ -435,18 +459,39 @@
         while (policeVehicles.length < desired && nodes.length > 0) {
             var px = ctx.player.x;
             var pz = ctx.player.z;
+            var pAngle = ctx.player.angle || 0;
+            var pFx = Math.sin(pAngle);
+            var pFz = Math.cos(pAngle);
             var bestNode = nodes[0];
             var candidates = [];
+
             for (var i = 0; i < nodes.length; i++) {
-                var d = dist2D(nodes[i].x, nodes[i].z, px, pz);
-                if (d >= 55 && d <= 85) candidates.push(nodes[i]);
+                var nd = nodes[i];
+                var d = dist2D(nd.x, nd.z, px, pz);
+                if (d < 62 || d > 118) continue;
+
+                // Evita nascer logo à frente do jogador ou em cima de outra patrulha
+                var toNodeX = (nd.x - px) / d;
+                var toNodeZ = (nd.z - pz) / d;
+                var aheadDot = toNodeX * pFx + toNodeZ * pFz;
+                if (aheadDot > 0.55 && d < 95) continue;
+
+                var occupied = false;
+                for (var ep = 0; ep < policeVehicles.length; ep++) {
+                    if (dist2D(policeVehicles[ep].x, policeVehicles[ep].z, nd.x, nd.z) < 14) {
+                        occupied = true;
+                        break;
+                    }
+                }
+                if (!occupied) candidates.push(nd);
             }
+
             if (candidates.length > 0) {
                 bestNode = candidates[Math.floor(Math.random() * candidates.length)];
             } else {
                 var bestDiff = Infinity;
                 for (var j = 0; j < nodes.length; j++) {
-                    var dd = Math.abs(dist2D(nodes[j].x, nodes[j].z, px, pz) - 70);
+                    var dd = Math.abs(dist2D(nodes[j].x, nodes[j].z, px, pz) - 82);
                     if (dd < bestDiff) {
                         bestDiff = dd;
                         bestNode = nodes[j];
@@ -458,7 +503,7 @@
                 z: bestNode.z,
                 angle: angleTo(bestNode.x, bestNode.z, px, pz),
                 color: '#f8fafc',
-                underglow: '#22d3ee',
+                underglow: null,
                 isAI: true,
                 aiRole: 'police',
                 sirenOn: true
@@ -1220,7 +1265,7 @@
             trafficCount: 6,
             init: function (ctx) {
                 var car = ctx.spawnVehicle('coupe', {
-                    x: 40, z: 80, angle: Math.PI / 2,
+                    x: 40, z: 120, angle: Math.PI / 2,
                     color: ctx.save.customization.color,
                     underglow: ctx.save.customization.underglow
                 });

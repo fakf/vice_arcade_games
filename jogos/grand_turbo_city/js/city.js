@@ -11,18 +11,18 @@
   var ROAD_Z = [-120, -40, 40, 120];
   var ROAD_WIDTH = 16;
 
-  // Keep indices 0..7 identical for Level 3 compatibility, plus new stunt ramps!
+  // Keep indices 0..7 identical for Level 3 compatibility, with avenue ramps cleanly in one lane!
   var RAMPS_DEF = [
-    { id: 1,  name: 'Praia Norte',           x: 128,  z: -80, dirX:  0, dirZ:  1, length: 12, width: 7,   height: 3.2 },
-    { id: 2,  name: 'Praia Sul',             x: 128,  z:  60, dirX:  0, dirZ: -1, length: 12, width: 7,   height: 3.2 },
-    { id: 3,  name: 'Parque Oeste',          x: -80,  z: -22, dirX:  1, dirZ:  0, length: 12, width: 7,   height: 3.2 },
-    { id: 4,  name: 'Parque Este',           x: -64,  z:  22, dirX: -1, dirZ:  0, length: 12, width: 7,   height: 3.2 },
-    { id: 5,  name: 'Avenida Central Norte', x: -40,  z: -80, dirX:  0, dirZ:  1, length: 12, width: 7,   height: 3.2 },
-    { id: 6,  name: 'Avenida Central Sul',   x:  40,  z:  80, dirX:  0, dirZ: -1, length: 12, width: 7,   height: 3.2 },
-    { id: 7,  name: 'Marina Oeste',          x: -80,  z:  82, dirX:  1, dirZ:  0, length: 12, width: 7,   height: 3.2 },
-    { id: 8,  name: 'Marina Este',           x:  74,  z:  82, dirX: -1, dirZ:  0, length: 12, width: 7,   height: 3.2 },
-    { id: 9,  name: 'Salto da Marginal',     x: 108,  z: -10, dirX:  0, dirZ: -1, length: 14, width: 7.2, height: 3.8 },
-    { id: 10, name: 'Canyon Oeste',          x: -156, z: -38, dirX: -1, dirZ:  0, length: 15, width: 8.0, height: 4.4 }
+    { id: 1,  name: 'Praia Norte',           x: 128,   z: -80, dirX:  0, dirZ:  1, length: 12, width: 7.0, height: 3.2 },
+    { id: 2,  name: 'Praia Sul',             x: 128,   z:  60, dirX:  0, dirZ: -1, length: 12, width: 7.0, height: 3.2 },
+    { id: 3,  name: 'Parque Oeste',          x: -80,   z: -22, dirX:  1, dirZ:  0, length: 12, width: 7.0, height: 3.2 },
+    { id: 4,  name: 'Parque Este',           x: -64,   z:  22, dirX: -1, dirZ:  0, length: 12, width: 7.0, height: 3.2 },
+    { id: 5,  name: 'Avenida Central Norte', x: -44.2, z: -60, dirX:  0, dirZ:  1, length: 12, width: 5.6, height: 3.2 },
+    { id: 6,  name: 'Avenida Central Sul',   x:  44.2, z:  60, dirX:  0, dirZ: -1, length: 12, width: 5.6, height: 3.2 },
+    { id: 7,  name: 'Marina Oeste',          x: -80,   z:  82, dirX:  1, dirZ:  0, length: 12, width: 7.0, height: 3.2 },
+    { id: 8,  name: 'Marina Este',           x:  74,   z:  82, dirX: -1, dirZ:  0, length: 12, width: 7.0, height: 3.2 },
+    { id: 9,  name: 'Salto da Marginal',     x: 119.5, z: -12, dirX:  0, dirZ: -1, length: 14, width: 6.4, height: 3.8 },
+    { id: 10, name: 'Canyon Oeste',          x: -156,  z: -38, dirX: -1, dirZ:  0, length: 15, width: 8.0, height: 4.4 }
   ];
 
   var LANDMARKS = {
@@ -179,14 +179,39 @@
   }
 
   function getGroundHeight(x, z, currentY) {
+    var baseH = 0;
     if (x < -132) {
-      return getDesertHeight(x, z);
-    }
-    if (x >= 114) {
+      baseH = getDesertHeight(x, z);
+    } else if (x >= 114) {
       var bInfo = getBridgeElevation(x, z, currentY);
-      if (bInfo.onBridge) return bInfo.y;
+      if (bInfo.onBridge) baseH = bInfo.y;
     }
-    return 0;
+
+    // Also include ramp surface elevation when currentY is near/above the ramp slope
+    // (used for accurate car pitch alignment & on-foot walking up ramps!)
+    if (currentY !== undefined) {
+      for (var i = 0; i < RAMPS_DEF.length; i++) {
+        var rm = RAMPS_DEF[i];
+        var relX = x - rm.x;
+        var relZ = z - rm.z;
+        var hl = rm.length * 0.5;
+        var hw = rm.width * 0.5;
+        if (Math.abs(relX) > hl + hw + 1 || Math.abs(relZ) > hl + hw + 1) continue;
+
+        var along = relX * rm.dirX + relZ * rm.dirZ;
+        var across = Math.abs(relX * (-rm.dirZ) + relZ * rm.dirX);
+        if (along >= -hl && along <= hl && across <= hw + 0.25) {
+          var rmBase = rm.x < -132 ? getDesertHeight(rm.x, rm.z) : 0;
+          var frac = (along + hl) / rm.length;
+          var rY = rmBase + frac * rm.height;
+          if (currentY >= rY - 0.75 && rY > baseH) {
+            baseH = rY;
+          }
+        }
+      }
+    }
+
+    return baseH;
   }
 
   function isOnSand(x, z) {
@@ -1317,10 +1342,12 @@
 
   function buildPedestrians(parent) {
     pedestrians = [];
-    var shirtColors = [0xf8fafc, 0x2563eb, 0xdc2626, 0x16a34a, 0xd97706, 0x475569, 0x0d9488];
-    var pantsColors = [0x1e3a8a, 0x334155, 0x44403c, 0x1f2937];
-    var skinColors  = [0xf3c69f, 0xe0a97b, 0xc68642, 0x8d5524];
-    var hairColors  = [0x1c1917, 0x451a03, 0x78350f, 0x27272a];
+    var shirtHexes = ['#f8fafc', '#2563eb', '#dc2626', '#16a34a', '#d97706', '#334155', '#0d9488', '#f3e8c8'];
+    var shirtStyles = ['tee', 'jacket', 'tank', 'tee', 'jacket', 'tee', 'tank', 'tee'];
+    var pantsHexes = ['#1e3a8a', '#334155', '#57534e', '#1f2937', '#a89f91'];
+    var skinHexes  = ['#f3c69f', '#e0a97b', '#c68642', '#8d5524'];
+    var hairHexes  = ['#1c1917', '#451a03', '#78350f', '#27272a', '#92400e'];
+    var shoeHexes  = ['#f8fafc', '#1e293b', '#dc2626', '#e2e8f0'];
 
     for (var i = 0; i < 28; i++) {
       var alongNS = i % 2 === 0;
@@ -1340,77 +1367,32 @@
         dirZ = 0;
       }
 
-      var group = new THREE.Group();
-      var shirtMat = new THREE.MeshStandardMaterial({ color: shirtColors[i % shirtColors.length], roughness: 0.78 });
-      var pantsMat = new THREE.MeshStandardMaterial({ color: pantsColors[i % pantsColors.length], roughness: 0.85 });
-      var skinMat  = new THREE.MeshStandardMaterial({ color: skinColors[i % skinColors.length], roughness: 0.68 });
-      var hairMat  = new THREE.MeshStandardMaterial({ color: hairColors[i % hairColors.length], roughness: 0.9 });
-      var shoeMat  = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.7 });
+      var human = window.GTC.Human ? window.GTC.Human.create({
+        skinHex: skinHexes[i % skinHexes.length],
+        hairHex: hairHexes[i % hairHexes.length],
+        shirtHex: shirtHexes[i % shirtHexes.length],
+        shirtStyle: shirtStyles[i % shirtStyles.length],
+        pantsHex: pantsHexes[i % pantsHexes.length],
+        shoeHex: shoeHexes[i % shoeHexes.length],
+        fullHair: (i % 3 === 1),
+        wearsShorts: (i % 5 === 2),
+        capHex: (i % 6 === 0) ? 0x1e293b : null,
+        hasShades: (i % 4 === 0),
+        scale: 0.96 + (i % 3) * 0.03,
+        castShadow: true
+      }) : { root: new THREE.Group() };
 
-      // Tapered human torso + pelvis
-      var torso = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.22, 0.74, 8), shirtMat);
-      torso.scale.set(1.15, 1, 0.75);
-      torso.position.y = 1.16;
-      torso.castShadow = true;
-      group.add(torso);
-
-      var head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
-      head.scale.set(0.92, 1.06, 0.95);
-      head.position.y = 1.73;
-      head.castShadow = true;
-      group.add(head);
-
-      var hair = new THREE.Mesh(new THREE.SphereGeometry(0.23, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
-      hair.position.y = 1.75;
-      group.add(hair);
-
-      // Articulated legs (pivot at hip y = 0.78)
-      var legL = new THREE.Group();
-      legL.position.set(-0.13, 0.78, 0);
-      var legLM = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.72, 7), pantsMat);
-      legLM.position.y = -0.36;
-      legLM.castShadow = true;
-      var shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.11, 0.30), shoeMat);
-      shoeL.position.set(0, -0.72, 0.04);
-      legL.add(legLM, shoeL);
-      group.add(legL);
-
-      var legR = new THREE.Group();
-      legR.position.set(0.13, 0.78, 0);
-      var legRM = legLM.clone();
-      var shoeR = shoeL.clone();
-      legR.add(legRM, shoeR);
-      group.add(legR);
-
-      // Articulated arms (pivot at shoulder y = 1.46)
-      var armL = new THREE.Group();
-      armL.position.set(-0.34, 1.46, 0);
-      var sleeveL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.26, 7), shirtMat);
-      sleeveL.position.y = -0.12;
-      var forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.42, 7), skinMat);
-      forearmL.position.y = -0.42;
-      armL.add(sleeveL, forearmL);
-      group.add(armL);
-
-      var armR = new THREE.Group();
-      armR.position.set(0.34, 1.46, 0);
-      armR.add(sleeveL.clone(), forearmL.clone());
-      group.add(armR);
-
-      group.position.set(x, 0.14, z);
-      parent.add(group);
+      human.root.position.set(x, 0.14, z);
+      parent.add(human.root);
 
       pedestrians.push({
-        mesh: group,
-        legL: legL,
-        legR: legR,
-        armL: armL,
-        armR: armR,
+        mesh: human.root,
+        human: human,
         x: x,
         z: z,
         dirX: dirX,
         dirZ: dirZ,
-        speed: 2.5 + (i % 4) * 0.4,
+        speed: 2.3 + (i % 4) * 0.35,
         phase: i * 1.1,
         jumpTimer: 0,
         dodgeVx: 0,
@@ -1679,7 +1661,7 @@
       if (p.jumpTimer > 0) {
         p.jumpTimer -= dt;
         var prog = 1 - Math.max(0, p.jumpTimer) / 0.45;
-        var jumpY = 0.14 + Math.sin(prog * Math.PI) * 1.15;
+        var jumpY = 0.14 + Math.sin(prog * Math.PI) * 1.05;
 
         var nx = p.x + p.dodgeVx * dt;
         var nz = p.z + p.dodgeVz * dt;
@@ -1688,10 +1670,9 @@
           p.z = nz;
         }
         p.mesh.position.set(p.x, jumpY, p.z);
-        p.armL.rotation.x = -Math.PI * 0.82;
-        p.armR.rotation.x = -Math.PI * 0.82;
-        p.legL.rotation.x = 0.35;
-        p.legR.rotation.x = -0.35;
+        if (window.GTC.Human && p.human) {
+          window.GTC.Human.animateLocomotion(p.human, { isDodging: true, time: time });
+        }
       } else {
         var stepX = p.x + p.dirX * p.speed * dt;
         var stepZ = p.z + p.dirZ * p.speed * dt;
@@ -1703,12 +1684,14 @@
           p.z = stepZ;
         }
 
-        p.phase += dt * p.speed * 2.3;
-        var swing = Math.sin(p.phase) * 0.52;
-        p.legL.rotation.x = swing;
-        p.legR.rotation.x = -swing;
-        p.armL.rotation.x = -swing * 0.65;
-        p.armR.rotation.x = swing * 0.65;
+        p.phase += dt * p.speed * 2.5;
+        if (window.GTC.Human && p.human) {
+          window.GTC.Human.animateLocomotion(p.human, {
+            phase: p.phase,
+            speedNorm: 0.48,
+            time: time
+          });
+        }
 
         p.mesh.position.set(p.x, 0.14, p.z);
         p.mesh.rotation.y = Math.atan2(p.dirX, p.dirZ);

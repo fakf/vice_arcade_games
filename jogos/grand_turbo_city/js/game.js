@@ -142,87 +142,23 @@
     }
 
     // =========================================================================
-    // Personagem a Pé 3D Articulado Realista (100% Invencível)
+    // Personagem a Pé 3D Esculpido & Multi-Articulado (100% Invencível)
     // =========================================================================
     function createPlayerMesh() {
-        var group = new THREE.Group();
-
-        var shirtMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.72 });
-        var jeansMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.85 });
-        var skinMat  = new THREE.MeshStandardMaterial({ color: 0xd99b6c, roughness: 0.65 });
-        var shoeMat  = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.6 });
-        var trimMat  = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.5 });
-
-        // Articulated Legs (hip pivot at y = 0.82)
-        var legL = new THREE.Group();
-        legL.position.set(-0.14, 0.82, 0);
-        var thighL = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, 0.76, 8), jeansMat);
-        thighL.position.y = -0.38;
-        thighL.castShadow = true;
-        var shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.32), shoeMat);
-        shoeL.position.set(0, -0.76, 0.05);
-        shoeL.castShadow = true;
-        legL.add(thighL, shoeL);
-
-        var legR = new THREE.Group();
-        legR.position.set(0.14, 0.82, 0);
-        legR.add(thighL.clone(), shoeL.clone());
-        group.add(legL, legR);
-
-        // Tapered athletic torso (classic white tank/tee + belt)
-        var pelvis = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.18, 8), jeansMat);
-        pelvis.scale.set(1.15, 1, 0.8);
-        pelvis.position.y = 0.86;
-        group.add(pelvis);
-
-        var torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.23, 0.74, 10), shirtMat);
-        torso.scale.set(1.16, 1, 0.76);
-        torso.position.y = 1.26;
-        torso.castShadow = true;
-        group.add(torso);
-
-        // Articulated Arms (shoulder pivot at y = 1.54)
-        var armL = new THREE.Group();
-        armL.position.set(-0.36, 1.54, 0);
-        var upperArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.072, 0.66, 8), skinMat);
-        upperArmL.position.y = -0.31;
-        upperArmL.castShadow = true;
-        armL.add(upperArmL);
-
-        var armR = new THREE.Group();
-        armR.position.set(0.36, 1.54, 0);
-        armR.add(upperArmL.clone());
-        group.add(armL, armR);
-
-        // Head, sunglasses & sporty red cap
-        var head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 12), skinMat);
-        head.scale.set(0.94, 1.05, 0.96);
-        head.position.y = 1.84;
-        head.castShadow = true;
-        group.add(head);
-
-        var glasses = new THREE.Mesh(
-            new THREE.BoxGeometry(0.36, 0.09, 0.10),
-            new THREE.MeshBasicMaterial({ color: 0x0f172a })
-        );
-        glasses.position.set(0, 1.86, 0.20);
-        group.add(glasses);
-
-        var capCrown = new THREE.Mesh(
-            new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52),
-            trimMat
-        );
-        capCrown.position.y = 1.87;
-        group.add(capCrown);
-
-        var capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.04, 0.24), trimMat);
-        capBrim.position.set(0, 1.93, 0.18);
-        group.add(capBrim);
-
-        group.visible = false;
-        scene.add(group);
-        player.mesh = group;
-        player.parts = { legL: legL, legR: legR, armL: armL, armR: armR };
+        var human = GTC.Human.create({
+            skinHex: '#c68642',
+            hairHex: '#18181b',
+            shirtHex: '#f8fafc',
+            shirtStyle: 'tank',
+            pantsHex: '#1d4ed8',
+            shoeHex: '#f8fafc',
+            hasShades: true,
+            castShadow: true
+        });
+        human.root.visible = false;
+        scene.add(human.root);
+        player.mesh = human.root;
+        player.human = human;
     }
 
     // =========================================================================
@@ -732,23 +668,23 @@
             player.isGrounded = true;
         }
 
+        if (player.waveTimer > 0) {
+            player.waveTimer = Math.max(0, player.waveTimer - dt);
+        }
+
         if (player.mesh) {
             player.mesh.visible = true;
             player.mesh.position.set(player.x, player.y, player.z);
             player.mesh.rotation.y = player.angle;
 
-            var swing = player.speed > 0.5 ? Math.sin(player.walkCycle) * 0.65 : 0;
-            player.parts.legL.rotation.x = swing;
-            player.parts.legR.rotation.x = -swing;
-            player.parts.armL.rotation.x = -swing;
-
-            if (player.waveTimer > 0) {
-                player.waveTimer -= dt;
-                player.parts.armR.rotation.x = -2.6;
-                player.parts.armR.rotation.z = Math.sin(elapsedTime * 18) * 0.45 - 0.35;
-            } else {
-                player.parts.armR.rotation.x = swing;
-                player.parts.armR.rotation.z = 0;
+            if (player.human && GTC.Human) {
+                GTC.Human.animateLocomotion(player.human, {
+                    phase: player.walkCycle,
+                    speedNorm: player.speed / 17,
+                    isAirborne: !player.isGrounded,
+                    waveTimer: player.waveTimer,
+                    time: elapsedTime
+                });
             }
         }
     }
@@ -826,10 +762,10 @@
         } else {
             var distBack = player.inVehicle
                 ? (save.cameraMode === 0 ? 10.2 : 16.0)
-                : (save.cameraMode === 0 ? 7.2 : 10.8);
+                : (save.cameraMode === 0 ? 5.2 : 9.4);
             var heightUp = player.inVehicle
                 ? (save.cameraMode === 0 ? 4.3 : 7.4)
-                : (save.cameraMode === 0 ? 3.4 : 5.2);
+                : (save.cameraMode === 0 ? 2.25 : 4.4);
 
             var fx = Math.sin(heading);
             var fz = Math.cos(heading);

@@ -274,104 +274,33 @@
     };
   }
 
-  // Articulated seated driver / motorcycle rider
+  // Sculpted 3D seated driver / motorcycle rider via GTC.Human
   function makeDriver(isMotoRider, isPolice) {
     ensureSharedMaterials();
-    var grp = new THREE.Group();
-
-    var jacketHex = isPolice ? 0x1e3a8a : (isMotoRider ? 0xd97706 : 0xf8fafc); // Orange/tan jersey on moto like Reel!
-    var pantsHex = isPolice ? 0x0f172a : (isMotoRider ? 0xe5e7eb : 0x1e3a8a);
-    var skinMat = new THREE.MeshStandardMaterial({ color: 0xd99b6c, roughness: 0.65 });
-    var jacketMat = new THREE.MeshStandardMaterial({ color: jacketHex, roughness: 0.72 });
-    var pantsMat = new THREE.MeshStandardMaterial({ color: pantsHex, roughness: 0.8 });
-
-    // Torso
-    var torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.20, 0.62, 8), jacketMat);
-    torso.scale.set(1.15, 1, 0.78);
-    torso.position.y = 0.34;
-    torso.castShadow = true;
-    grp.add(torso);
-
-    // Head / Helmet
-    if (isMotoRider) {
-      // Sport helmet with dark visor
-      var helm = new THREE.Mesh(
-        new THREE.SphereGeometry(0.22, 12, 10),
-        new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.35, roughness: 0.25 })
-      );
-      helm.scale.set(0.95, 1.02, 1.12);
-      helm.position.set(0, 0.80, 0.04);
-      helm.castShadow = true;
-      grp.add(helm);
-
-      var visor = new THREE.Mesh(
-        new THREE.SphereGeometry(0.225, 10, 8, -Math.PI * 0.36, Math.PI * 0.72, Math.PI * 0.28, Math.PI * 0.34),
-        sharedGlassMat
-      );
-      visor.rotation.y = Math.PI * 0.5;
-      visor.position.set(0, 0.80, 0.05);
-      grp.add(visor);
-
-      // Rider arms reaching forward to handlebars
-      var armGeo = new THREE.CylinderGeometry(0.068, 0.058, 0.58, 7);
-      var armL = new THREE.Mesh(armGeo, skinMat);
-      armL.position.set(-0.28, 0.50, 0.26);
-      armL.rotation.set(1.18, 0, -0.18);
-      grp.add(armL);
-      var armR = armL.clone();
-      armR.position.x = 0.28;
-      armR.rotation.z = 0.18;
-      grp.add(armR);
-
-      // Rider legs gripping tank & bent back to footpegs
-      var thighGeo = new THREE.CylinderGeometry(0.095, 0.08, 0.48, 7);
-      var thighL = new THREE.Mesh(thighGeo, pantsMat);
-      thighL.position.set(-0.22, 0.06, 0.14);
-      thighL.rotation.set(1.05, 0, 0.16);
-      grp.add(thighL);
-      var thighR = thighL.clone();
-      thighR.position.x = 0.22;
-      thighR.rotation.z = -0.16;
-      grp.add(thighR);
-
-      var calfGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.44, 7);
-      var calfL = new THREE.Mesh(calfGeo, pantsMat);
-      calfL.position.set(-0.24, -0.18, 0.04);
-      calfL.rotation.set(-0.65, 0, 0);
-      grp.add(calfL);
-      var calfR = calfL.clone();
-      calfR.position.x = 0.24;
-      grp.add(calfR);
-    } else {
-      var head = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 10), skinMat);
-      head.position.y = 0.78;
-      grp.add(head);
-
-      if (isPolice) {
-        var cap = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.21, 0.10, 10),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 })
-        );
-        cap.position.set(0, 0.92, 0.02);
-        grp.add(cap);
+    if (window.GTC.Human) {
+      var h = window.GTC.Human.create({
+        skinHex: isPolice ? '#e0a97b' : '#c68642',
+        hairHex: '#18181b',
+        shirtHex: isPolice ? '#1e3a8a' : (isMotoRider ? '#c2410c' : '#f8fafc'),
+        shirtStyle: isPolice ? 'police' : (isMotoRider ? 'jersey' : 'tank'),
+        badgeNumber: '46',
+        pantsHex: isPolice ? '#0f172a' : (isMotoRider ? '#e5e7eb' : '#1d4ed8'),
+        shoeHex: isPolice ? '#111827' : '#f8fafc',
+        hasHelmet: !!isMotoRider,
+        helmetHex: 0xf8fafc,
+        capHex: isPolice ? 0x0f172a : null,
+        hasShades: !isMotoRider,
+        castShadow: true
+      });
+      if (isMotoRider) {
+        window.GTC.Human.poseMotoRider(h, 0);
       } else {
-        var hair = new THREE.Mesh(
-          new THREE.SphereGeometry(0.21, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-          new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 })
-        );
-        hair.position.y = 0.80;
-        grp.add(hair);
-
-        var shades = new THREE.Mesh(
-          new THREE.BoxGeometry(0.32, 0.08, 0.08),
-          sharedDarkTrimMat
-        );
-        shades.position.set(0, 0.80, 0.18);
-        grp.add(shades);
+        window.GTC.Human.poseCarDriver(h);
       }
+      h.root.userData.human = h;
+      return h.root;
     }
-
-    return grp;
+    return new THREE.Group();
   }
 
   function addSideMirrors(parent, xOffset, yPos, zPos, mat) {
@@ -615,10 +544,16 @@
       mBl.position.set(0, 1.02, -1.08);
       bodyGroup.add(mBl);
 
-      // Realistic articulated rider leaning forward onto grips
+      // Footpegs & realistic sculpted rider gripping tank and handlebars
+      var pegGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.62, 8);
+      pegGeo.rotateZ(Math.PI / 2);
+      var pegs = new THREE.Mesh(pegGeo, sharedChromeMat);
+      pegs.position.set(0, 0.44, -0.22);
+      bodyGroup.add(pegs);
+
       var rider = makeDriver(true, false);
-      rider.position.set(0, 0.92, -0.22);
-      rider.rotation.x = 0.36;
+      rider.position.set(0, 0.93, -0.24);
+      rider.scale.set(0.98, 0.98, 0.98);
       bodyGroup.add(rider);
       driverMesh = rider;
 
@@ -677,8 +612,8 @@
       addDualExhausts(bodyGroup, 0.42, 0.82, -1.86);
 
       driverMesh = makeDriver(false, false);
-      driverMesh.position.set(0, 0.68, -0.22);
-      driverMesh.scale.set(0.85, 0.85, 0.85);
+      driverMesh.position.set(0, 0.72, -0.22);
+      driverMesh.scale.set(0.88, 0.88, 0.88);
       bodyGroup.add(driverMesh);
 
       var bHl1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.12, 12), headMat);
@@ -1368,8 +1303,14 @@
       vehicle.z = tryZ;
     }
 
-    // Continuous terrain + bridge elevation
-    var baseTerrainY = city.getGroundHeight ? city.getGroundHeight(vehicle.x, vehicle.z, vehicle.y) : 0;
+    // Continuous terrain + bridge elevation (excluding ramps first, handled with exact OBB below)
+    var baseTerrainY = 0;
+    if (vehicle.x < -132 && city.getGroundHeight) {
+      baseTerrainY = city.getGroundHeight(vehicle.x, vehicle.z);
+    } else if (vehicle.x >= 114 && city.getBridgeElevation) {
+      var bCheck = city.getBridgeElevation(vehicle.x, vehicle.z, vehicle.y);
+      if (bCheck.onBridge) baseTerrainY = bCheck.y;
+    }
     var bridgeInfo = city.getBridgeElevation ? city.getBridgeElevation(vehicle.x, vehicle.z, vehicle.y) : { onBridge: false, y: 0, slopeBoost: 0 };
     var onRampGroundY = baseTerrainY;
     var hitRampSide = false;
@@ -1382,33 +1323,93 @@
       vehicle.isGrounded = false;
     }
 
-    // Check Ramps OBB
+    // Solid 3D Wedge Ramps: exact deck riding vs Circle-vs-OBB wall push-out!
     if (city.ramps) {
+      var rPad = r * 0.90;
       for (var ri = 0; ri < city.ramps.length; ri++) {
         var rm = city.ramps[ri];
-        var rmBaseY = (rm.x < -132 && city.getGroundHeight) ? city.getGroundHeight(rm.x, rm.z, 0) : 0;
         var relX = vehicle.x - rm.x;
         var relZ = vehicle.z - rm.z;
-        var along = relX * rm.dirX + relZ * rm.dirZ;
-        var across = Math.abs(relX * (-rm.dirZ) + relZ * rm.dirX);
-        var hl = rm.length / 2;
-        var hw = rm.width / 2;
+        var hl = rm.length * 0.5;
+        var hw = rm.width * 0.5;
 
-        if (along >= -hl - 0.5 && along <= hl + 0.5 && across <= hw + 0.5) {
-          var dot = moveDirX * rm.dirX + moveDirZ * rm.dirZ;
-          if (dot > 0.5 || vehicle.y >= rmBaseY + 1.2) {
-            var frac = Math.max(0, Math.min(1, (along + hl) / rm.length));
-            var rampY = rmBaseY + frac * rm.height;
-            if (rampY > onRampGroundY) onRampGroundY = rampY;
+        // Fast broadphase cull
+        var maxReach = hl + hw + rPad + 1.0;
+        if (Math.abs(relX) > maxReach || Math.abs(relZ) > maxReach) continue;
 
-            if (frac > 0.86 && vehicle.speed > 12 && vehicle.vy <= 2 && dot > 0.5) {
-              vehicle.vy = Math.min(24, vehicle.speed * 0.38) * spec.jumpMult;
-              vehicle.isGrounded = false;
-            }
-          } else if (vehicle.y < rmBaseY + 1.2 && Math.abs(along) < hl && across < hw) {
+        var rmBaseY = (rm.x < -132 && city.getGroundHeight) ? city.getGroundHeight(rm.x, rm.z) : 0;
+        // Local ramp coordinates: u = along [-hl..+hl], v = across [-hw..+hw]
+        var rightX = -rm.dirZ;
+        var rightZ = rm.dirX;
+        var u = relX * rm.dirX + relZ * rm.dirZ;
+        var v = relX * rightX + relZ * rightZ;
+
+        var fracCenter = Math.max(0, Math.min(1, (u + hl) / rm.length));
+        var deckYAtCenter = rmBaseY + fracCenter * rm.height;
+
+        // 1. Check if vehicle is validly ON TOP of the ramp deck (entered from low end or airborne above it)
+        var overDeck = (u >= -hl - 0.6 && u <= hl + 0.45 && Math.abs(v) <= hw + 0.30);
+        if (overDeck && vehicle.y >= deckYAtCenter - 0.68) {
+          if (deckYAtCenter > onRampGroundY) {
+            onRampGroundY = deckYAtCenter;
+          }
+          var dotFwd = moveDirX * rm.dirX + moveDirZ * rm.dirZ;
+          if (fracCenter > 0.85 && vehicle.speed > 12 && vehicle.vy <= 2.5 && dotFwd > 0.45) {
+            vehicle.vy = Math.min(24, vehicle.speed * 0.38) * spec.jumpMult;
+            vehicle.isGrounded = false;
+          }
+          continue;
+        }
+
+        // 2. Otherwise, collide vehicle's circular hull against the solid raised wedge portion
+        // (where ramp wall height > vehicle.y + 0.55m, leaving the low entry lip flush & driveable!)
+        var minSolidFrac = (vehicle.y + 0.55 - rmBaseY) / rm.height;
+        if (minSolidFrac >= 1.0) continue; // Vehicle is completely above the highest lip of this ramp
+
+        var uMinSolid = -hl + Math.max(0.12, minSolidFrac) * rm.length;
+        var clampedU = Math.max(uMinSolid, Math.min(hl, u));
+        var clampedV = Math.max(-hw, Math.min(hw, v));
+        var du = u - clampedU;
+        var dv = v - clampedV;
+        var dSq = du * du + dv * dv;
+
+        if (dSq < rPad * rPad) {
+          var pushU = 0;
+          var pushV = 0;
+
+          if (dSq > 0.0001) {
+            var d = Math.sqrt(dSq);
+            var pen = rPad - d;
+            pushU = (du / d) * pen;
+            pushV = (dv / d) * pen;
+          } else {
+            // Failsafe if center ever started inside the solid box: push out nearest face!
+            var toLeft = v + hw;
+            var toRight = hw - v;
+            var toBack = hl - u;
+            var toFront = u - uMinSolid;
+            var mPen = Math.min(toLeft, toRight, toBack, toFront);
+            if (mPen === toLeft) pushV = -(toLeft + rPad);
+            else if (mPen === toRight) pushV = (toRight + rPad);
+            else if (mPen === toBack) pushU = (toBack + rPad);
+            else pushU = -(toFront + rPad);
+          }
+
+          // Push vehicle cleanly outside the ramp wall in world space
+          vehicle.x += rm.dirX * pushU + rightX * pushV;
+          vehicle.z += rm.dirZ * pushU + rightZ * pushV;
+
+          // Compute impact normal to distinguish grazing a side wall vs head-on back-wall hit
+          var nLen = Math.hypot(pushU, pushV) || 1;
+          var worldNx = (rm.dirX * pushU + rightX * pushV) / nLen;
+          var worldNz = (rm.dirZ * pushU + rightZ * pushV) / nLen;
+          var velDotN = (fx * vehicle.speed) * worldNx + (fz * vehicle.speed) * worldNz;
+
+          if (velDotN < -14) {
             hitRampSide = true;
-            vehicle.x -= dx;
-            vehicle.z -= dz;
+          } else if (velDotN < 0) {
+            // Smooth glancing slide along side of ramp without getting stuck
+            vehicle.speed *= 0.88;
           }
         }
       }
@@ -1632,6 +1633,10 @@
         ? (steer * 0.44 * speedFactor)
         : (-steer * (isDrifting ? 0.075 : 0.045) * speedFactor);
       vehicle.bodyGroup.rotation.z += (targetRoll - vehicle.bodyGroup.rotation.z) * Math.min(1, dt * 10);
+
+      if (spec.isMoto && vehicle.driverMesh && vehicle.driverMesh.userData && vehicle.driverMesh.userData.human && window.GTC.Human) {
+        window.GTC.Human.poseMotoRider(vehicle.driverMesh.userData.human, steer * speedFactor);
+      }
     }
 
     // Wheel spin & front wheel visual steering!
